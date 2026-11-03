@@ -23,10 +23,25 @@ In a Cursor agent, with this thread on Claude Opus 5.5 High:
 "Just post, no fixing" stops after step 2 and the side chat's posting.
 Large PRs take 10 to 20 minutes.
 
-From Codex, open a new Cursor agent thread in the project repo with Computer Use
-(`cua.getApp("Cursor")`, see `use-computer`), pick Claude Opus 5.5 High, and
-send `/cursor-review <PR URL>`. Do not use `cursor-agent -p`; the review
-skills need interactive workspace trust there.
+From Codex, Cursor reviews and Codex fixes. Drive the Cursor app with
+Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
+`cursor-agent -p`; the review skills need interactive workspace trust there.
+
+1. Push local work first so Cursor reviews the published head.
+2. Open two Cursor chats, or reuse this PR's `[Reviewing]` chats. Set each
+   chat's workspace to the PR's worktree and its model picker to Claude Opus
+   5.5 High; the picker can reset to Auto.
+3. Send `/review-pr <PR URL> --model claude-opus-5-5-high` in one chat and
+   `/simplify-code <PR URL> --model claude-opus-5-5-high` in the other. Add:
+   head SHA, scope, "read-only: do not edit, resolve, commit, push, or
+   merge", and title `[Reviewing] PR <N> …` or `[Reviewing] Simplify PR <N> …`.
+4. Read each chat's findings and validate them here. Reply in that chat with
+   `Post all`, `Post 1,3`, or `Post none` (for example, already fixed here).
+5. Run `address-comments` here. Push.
+6. Repeat steps 3 to 5 in the same chats on the new head until both passes
+   are clean. Merge only if asked, via `babysit-pr`.
+
+Poll about once a minute with a one-line status.
 
 Done when both passes ran on Opus 5.5 High and every finding is posted, or
 the pass reported none.
