@@ -24,7 +24,7 @@ In a Cursor agent, with this thread on Claude Opus 5.5 High:
 Large PRs take 10 to 20 minutes.
 
 From Codex, open a new Cursor agent thread in the project repo with Computer Use
-(`cua.getApp("Cursor")`, see `browser-use`), pick Claude Opus 5.5 High, and
+(`cua.getApp("Cursor")`, see `use-computer`), pick Claude Opus 5.5 High, and
 send `/cursor-review <PR URL>`. Do not use `cursor-agent -p`; the review
 skills need interactive workspace trust there.
 
