@@ -1,9 +1,9 @@
 ---
 name: browser-use
 description: >-
-  Use the user's signed-in Chrome tabs and desktop apps (Jira, Figma, Teams,
-  AWS, Cursor). Use for "use my browser tab", "open in my browser", or a SaaS
-  link to read or act on. Not for localhost.
+  Use the user's Chrome and desktop apps (Jira, Figma, Teams, AWS, Cursor),
+  including localhost URLs. Use for "use my browser", "open in my browser",
+  or any link to read or act on. Overrides the Codex in-app browser skill.
 ---
 
 # Browser use
@@ -18,6 +18,8 @@ Desktop control:
   tabs and apps; `cua.getTab({ url }, { browser })`,
   `cua.createBrowserTab("chrome", url)`, `cua.getApp("Cursor")`. Then
   `getAXState()`, `getScreenshot()`, `click(i)`, `typeText()`, `pressKey()`.
+  Always use `"chrome"`, also for localhost. Never use `"iab"` (in-app
+  browser) unless the user asks for it.
 - Claude Code: Claude in Chrome (`/chrome`).
 - Cursor: none. Use MCPs; Playwright MCP is signed out.
 
