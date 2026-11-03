@@ -4,6 +4,7 @@ description: >-
   Run the user's usual PR review with Claude Opus 5.5 High: review-pr plus
   simplify-code, post all, then address-comments. Use for "my usual review
   flow" or "review this PR in Cursor".
+disable-model-invocation: true
 ---
 
 # Cursor review

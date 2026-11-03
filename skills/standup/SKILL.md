@@ -4,6 +4,7 @@ description: >-
   Compose a brief yesterday/today standup as a Microsoft Teams chat message
   from git, PRs, worktrees, and other agents' work. Use when the user asks
   for a standup, standup message, Teams standup, or daily status.
+disable-model-invocation: true
 ---
 
 # Standup

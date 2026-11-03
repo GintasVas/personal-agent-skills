@@ -1,6 +1,7 @@
 ---
 name: sync-deliverables
 description: Reconciles a product slice across Jira, OpenSpec, pull requests, code, tests, API readiness, and Figma references. Use when the user says sync deliverables, reconcile delivery status, check what is shipped or missing, prepare next frontend work, or asks to align Jira and OpenSpec with implementation.
+disable-model-invocation: true
 ---
 
 # Sync deliverables

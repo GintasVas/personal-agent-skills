@@ -4,6 +4,7 @@ description: >-
   Start a web container for the current project worktree against the main
   checkout's Docker stack. Use for "spin up web", "web against main stack", or
   a local UI to test or capture from a worktree.
+disable-model-invocation: true
 ---
 
 # Spin up web

@@ -3,6 +3,7 @@ name: babysit-pr
 description: >-
   Watch a PR until required checks pass, fix what breaks, then squash-merge.
   Use for "merge when green", "babysit PR", or "merge when checks pass".
+disable-model-invocation: true
 ---
 
 # Babysit PR

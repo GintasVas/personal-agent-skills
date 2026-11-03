@@ -4,6 +4,7 @@ description: >-
   Use the user's Chrome and desktop apps (Jira, Figma, Teams, AWS, Cursor),
   including localhost URLs. Use for "use my browser", "open in my browser",
   or any link to read or act on. Overrides the Codex in-app browser skill.
+disable-model-invocation: true
 ---
 
 # Browser use

@@ -6,6 +6,7 @@ description: >-
   Teams-formatted message. Use when the user asks for a UX TLDR, what changed
   in the app today, what UX or QA should expect, what to share with UX, or a
   UI-wise summary of the day.
+disable-model-invocation: true
 ---
 
 # UX TLDR
