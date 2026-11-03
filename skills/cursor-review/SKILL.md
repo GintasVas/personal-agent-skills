@@ -38,8 +38,7 @@ Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
 4. Read each chat's findings and validate them here. Reply in that chat with
    `Post all`, `Post 1,3`, or `Post none` (for example, already fixed here).
 5. Run `address-comments` here. Push.
-6. Repeat steps 3 to 5 in the same chats on the new head until both passes
-   are clean. Merge only if asked, via `babysit-pr`.
+6. Merge only if asked, via `babysit-pr`.
 
 Poll about once a minute with a one-line status.
 
