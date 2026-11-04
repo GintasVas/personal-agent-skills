@@ -6,9 +6,7 @@ disable-model-invocation: true
 
 Address PR's open comments in the same checkout if valid. Respond and resolve all after pushing.
 
-Also fix real issues you discover along the way, even if no comment or the PR's
-diff caused them. Commit each separately from comment fixes and list them in
-your report.
+Also address valid issues posted as PR comments outside the diff.
 
 Use `gh` only, never a GitHub connector or MCP:
 
@@ -16,3 +14,4 @@ Use `gh` only, never a GitHub connector or MCP:
   (`id isResolved path line comments{databaseId body author{login}}`).
 - Reply: `gh api repos/{owner}/{repo}/pulls/<N>/comments/<databaseId>/replies -f body=...`.
 - Resolve: `gh api graphql` mutation `resolveReviewThread(input:{threadId})`.
+- Comments outside the diff: `gh api repos/{owner}/{repo}/issues/<N>/comments`.
