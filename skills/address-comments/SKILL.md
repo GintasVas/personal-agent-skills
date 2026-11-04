@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 Address PR's open comments in the same checkout if valid. Respond and resolve all after pushing.
 
+Also fix real issues you discover along the way, even if no comment or the PR's
+diff caused them. Commit each separately from comment fixes and list them in
+your report.
+
 Use `gh` only, never a GitHub connector or MCP:
 
 - Threads: `gh api graphql` on `pullRequest.reviewThreads`
