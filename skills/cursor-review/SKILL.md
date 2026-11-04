@@ -31,10 +31,9 @@ Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
 2. Open two Cursor chats, or reuse this PR's `[Reviewing]` chats. Set each
    chat's workspace to the PR's worktree and its model picker to Claude Opus
    5.5 High; the picker can reset to Auto.
-3. Send `/review-pr <PR URL> --model claude-opus-5-5-high` in one chat and
-   `/simplify-code <PR URL> --model claude-opus-5-5-high` in the other. Add:
-   head SHA, scope, "read-only: do not edit, resolve, commit, push, or
-   merge", and title `[Reviewing] PR <N> …` or `[Reviewing] Simplify PR <N> …`.
+3. Send exactly `/review-pr <PR URL> --model claude-opus-5-5-high` in one
+   chat and `/simplify-code <PR URL> --model claude-opus-5-5-high` in the
+   other. Add nothing else; the skills handle scope, head, and titles.
 4. Read each chat's findings and validate them here. Reply in that chat with
    `Post all`, `Post 1,3`, or `Post none` (for example, already fixed here).
 5. Run `address-comments` here. Push.
