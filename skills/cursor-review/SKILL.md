@@ -36,8 +36,7 @@ Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
    open a side chat from it and send exactly
    `/simplify-code <PR URL> --model claude-opus-5-5-high`. Add nothing else;
    the skills handle scope, head, and titles.
-4. Read each chat's findings and validate them here. Reply in each chat with
-   `Post all`, `Post 1,3`, or `Post none` (for example, already fixed here).
+4. When each chat lists its findings, reply exactly `Post all`.
 5. Run `address-comments` here. Push.
 6. Merge only if asked, via `babysit-pr`.
 
