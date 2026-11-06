@@ -32,8 +32,9 @@ Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
 1. Push local work first so Cursor reviews the published head.
 2. Open one Cursor chat in any repo, or reuse this PR's `[Reviewing]` chat.
    Set its model picker to Claude Opus 5.5 High; the picker can reset to Auto.
-3. Send exactly `/review-pr <PR URL> --model claude-opus-5-5-high`, then
-   open a side chat from it and send exactly
+3. Send exactly `/review-pr <PR URL> --model claude-opus-5-5-high`. Then
+   send `/side` in that same chat to open a side chat; it keeps the model, so
+   do not open a new chat or thread. In the side chat, send exactly
    `/simplify-code <PR URL> --model claude-opus-5-5-high`. Add nothing else;
    the skills handle scope, head, and titles.
 4. When each chat lists its findings, reply exactly `Post all`.
