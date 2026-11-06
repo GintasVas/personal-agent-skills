@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 # Cursor review
 
+Run from any repo: the review skills check out the PR in a temp worktree.
+
 In a Cursor agent, with this thread on Claude Opus 5.5 High:
 
 1. Side chat: fork this thread with `Task` (`resume: "self"`,
@@ -28,13 +30,13 @@ Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
 `cursor-agent -p`; the review skills need interactive workspace trust there.
 
 1. Push local work first so Cursor reviews the published head.
-2. Open two Cursor chats, or reuse this PR's `[Reviewing]` chats. Set each
-   chat's workspace to the PR's worktree and its model picker to Claude Opus
-   5.5 High; the picker can reset to Auto.
-3. Send exactly `/review-pr <PR URL> --model claude-opus-5-5-high` in one
-   chat and `/simplify-code <PR URL> --model claude-opus-5-5-high` in the
-   other. Add nothing else; the skills handle scope, head, and titles.
-4. Read each chat's findings and validate them here. Reply in that chat with
+2. Open one Cursor chat in any repo, or reuse this PR's `[Reviewing]` chat.
+   Set its model picker to Claude Opus 5.5 High; the picker can reset to Auto.
+3. Send exactly `/review-pr <PR URL> --model claude-opus-5-5-high`, then
+   open a side chat from it and send exactly
+   `/simplify-code <PR URL> --model claude-opus-5-5-high`. Add nothing else;
+   the skills handle scope, head, and titles.
+4. Read each chat's findings and validate them here. Reply in each chat with
    `Post all`, `Post 1,3`, or `Post none` (for example, already fixed here).
 5. Run `address-comments` here. Push.
 6. Merge only if asked, via `babysit-pr`.
