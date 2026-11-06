@@ -48,8 +48,8 @@ Teams does not turn pasted markdown into links. Put **rich HTML** on the
 clipboard so Cmd+V in Teams keeps `#910` as the clickable link.
 
 1. Compose the three sections.
-2. Wrap PR numbers as `<a href="<pr-url>">#910</a>`.
-   Escape `&`, `<`, `>` in the rest of the text.
+2. Wrap PR numbers as `<a href="<pr-url>">#910</a>`, with the PR's `url` from
+   `gh pr list --json url`. Escape `&`, `<`, `>` in the rest of the text.
 3. Pipe this HTML to the copy script (path relative to this skill):
 
 ```bash

@@ -19,7 +19,9 @@ language, not dev language.
 Use the session date and local timezone for "today" unless the user names
 another day.
 
-1. List PRs:
+1. Pick the repo: the one the user names, else the current checkout's
+   (`gh repo view --json nameWithOwner -q .nameWithOwner`). Ask if neither.
+2. List PRs:
 
 ```bash
 gh pr list --repo <owner/repo> --author @me --state all \
@@ -27,17 +29,17 @@ gh pr list --repo <owner/repo> --author @me --state all \
   --json number,title,state,isDraft,createdAt,mergedAt,url
 ```
 
-2. Keep PRs merged today, plus open PRs created or pushed to today. Drop
+3. Keep PRs merged today, plus open PRs created or pushed to today. Drop
    PRs that were only touched today (comments, rebases of old work) unless
    the user asks for them.
-3. Pull bodies and files in one call, written to a file you read in parts:
+4. Pull bodies and files in one call, written to a file you read in parts:
 
 ```bash
 for n in <numbers>; do echo "=== #$n"; gh pr view "$n" --repo <owner/repo> \
   --json title,state,body,files --jq '.title, .state, .body, (.files|map(.path)|join("\n"))'; done
 ```
 
-4. Classify each PR. UI-facing means it changes what someone sees or does in
+5. Classify each PR. UI-facing means it changes what someone sees or does in
    the web app, Keycloak screens, or emails. Docs, CI, agent skills, test
    tooling, and dependency bumps are not UI-facing.
 
@@ -71,7 +73,7 @@ Teams drops markdown styling and links when pasted. Put rich HTML on the
 clipboard:
 
 1. Build HTML with `<p><b>...</b></p>` group headings and `<ul><li>` bullets.
-   Links as `<a href="<pr-url>">#2547</a>`.
+   Links as `<a href="<pr-url>">#2547</a>`, with each PR's `url`.
    Escape `&`, `<`, `>` in text.
 2. Pipe it to the script in this skill's `scripts/` directory:
 

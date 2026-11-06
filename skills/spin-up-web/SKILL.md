@@ -12,13 +12,14 @@ disable-model-invocation: true
 Run from a project worktree, never the main checkout.
 
 1. Reuse this worktree's container if it runs:
-   `docker ps -a --filter "label=com.example.local-dev.web-only.root=$PWD" --format '{{.Names}} {{.Status}} {{.Ports}}'`.
+   `docker ps -a --format '{{.Names}} {{.Status}} {{.Ports}} {{.Labels}}' | grep -F "web-only.root=$PWD"`.
+   Keep only the container whose `*.web-only.root` label is exactly `$PWD`.
    Remove it with `docker rm -f -v <name>` if it exited.
 2. No `node_modules`: `bun run local:prepare-worktree`.
 3. `bun run local:web:against-main`. Missing `bun`: prepend
    `export PATH="/opt/homebrew/bin:$HOME/.bun/bin:$PATH";`.
-4. Report the URL, the seeded admin login, and the cleanup
-   command it prints.
+4. Report the URL, the seeded admin login (from the script output or the
+   repo's local-dev seed data), and the cleanup command it prints.
 
 Rules:
 

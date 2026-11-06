@@ -15,8 +15,8 @@ In a Cursor agent, with this thread on Claude Opus 5.5 High:
    `run_in_background: true`, description `Simplify code`). Prompt: run
    `/simplify-code <PR URL> --model claude-opus-5-5-high`, then `post all`.
 2. Main thread: run `/review-pr <PR URL> --model claude-opus-5-5-high`, then
-   `post all`. Both skills are in the repo's `.agents/skills/` and launch their
-   own Opus reviewers.
+   `post all`. Both skills are in the repo's `.agents/skills/` and launch
+   their own Opus reviewers.
 3. After both have posted, run `address-comments` in the PR's checkout.
 4. Merge only if asked, via `babysit-pr`.
 
