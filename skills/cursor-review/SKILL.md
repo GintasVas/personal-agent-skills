@@ -9,39 +9,39 @@ disable-model-invocation: true
 
 # Cursor review
 
-Run from any repo: the review skills check out the PR in a temp worktree.
+Usage: `/cursor-review <PR URL> [--N]`. Use the current PR when omitted.
+`--N` is a positive integer threshold, such as `--10`. Without it, run once.
 
-In a Cursor agent, with this thread on Claude Opus 5.5 High:
+Prefer Cursor CLI. Find `cursor-agent` on PATH or in `~/.local/bin`; check
+`status` and `--list-models`. Use exactly `claude-opus-5-5-high`, never Auto
+or a substitute. If signed out, use `NO_OPEN_BROWSER=1 cursor-agent login`
+and share its authorization link. CLI login is separate from desktop login.
 
-1. Side chat: fork this thread with `Task` (`resume: "self"`,
-   `run_in_background: true`, description `Simplify code`). Prompt: run
-   `/simplify-code <PR URL> --model claude-opus-5-5-high`, then `post all`.
-2. Main thread: run `/review-pr <PR URL> --model claude-opus-5-5-high`, then
-   `post all`. Both skills are in the repo's `.agents/skills/` and launch
-   their own Opus reviewers.
-3. After both have posted, run `address-comments` in the PR's checkout.
-4. Merge only if asked, via `babysit-pr`.
+Read the repo's `review-pr` and `simplify-code` skills and their Cursor CLI
+host guidance. Follow their preparation, trust, runner, verification, and
+posting steps. Launch their model-pinned CLI workers in Ask mode, in parallel.
+The parent handles posting and fixes. Never bypass workspace trust with
+`--trust` or permissions with `--force`.
 
-"Just post, no fixing" stops after step 2 and the side chat's posting.
-Large PRs take 10 to 20 minutes.
+Each round:
 
-From Codex, Cursor reviews and Codex fixes. Drive the Cursor app with
-Computer Use (`cua.getApp("Cursor")`, see `use-computer`). Do not use
-`cursor-agent -p`; the review skills need interactive workspace trust there.
+1. Push the intended changes. Run `review-pr` and `simplify-code`, both with
+   `--model claude-opus-5-5-high`, against the same published PR head.
+2. Wait for both to finish. Verify their inputs and post all findings.
+   Count distinct findings across both results, counting duplicates once.
+3. Run `address-comments` in the PR checkout, verify fixes, and push.
+4. If `--N` was supplied and this round's combined count is at least N,
+   repeat both reviews on the updated head with the same threshold.
+   Stop below N or after three rounds total, including the first.
 
-1. Push local work first so Cursor reviews the published head.
-2. Open one Cursor chat in any repo, or reuse this PR's `[Reviewing]` chat.
-   Set its model picker to Claude Opus 5.5 High; the picker can reset to Auto.
-3. Send exactly `/review-pr <PR URL> --model claude-opus-5-5-high`. Then
-   send `/side` in that same chat to open a side chat; it keeps the model, so
-   do not open a new chat or thread. In the side chat, send exactly
-   `/simplify-code <PR URL> --model claude-opus-5-5-high`. Add nothing else;
-   the skills handle scope, head, and titles.
-4. When each chat lists its findings, reply exactly `Post all`.
-5. Run `address-comments` here. Push.
-6. Merge only if asked, via `babysit-pr`.
+"Just post, no fixing" stops after posting one round, even with `--N`.
+If a pass fails or a finding needs a user decision, report the blocker;
+do not count an incomplete round as clean. Report each round's count and
+remaining findings, including any left at the cap. Merge only if asked,
+via `babysit-pr`.
 
-Poll about once a minute with a one-line status.
-
-Done when both passes ran on Opus 5.5 High and every finding is posted, or
-the pass reported none.
+Use the desktop app only when CLI is unavailable or blocked and the app is
+usable. Follow `use-computer`, select Claude Opus 5.5 High, and send exactly
+`/review-pr <PR URL> --model claude-opus-5-5-high`. Send `/side` in that chat,
+then `/simplify-code <PR URL> --model claude-opus-5-5-high` in the side chat.
+Reply `Post all` to each result. Apply the same rounds above.
