@@ -32,7 +32,7 @@ export PLAYWRIGHT_MCP_OUTPUT_DIR=.tmp/playwright-cli/<task>
 export PLAYWRIGHT_MCP_BROWSER=chrome
 export PLAYWRIGHT_MCP_SANDBOX=1
 bunx @playwright/cli@0.1.18 -s=<task> open <url>
-bunx @playwright/cli@0.1.18 -s=<task> snapshot --filename=start.yml
+bunx @playwright/cli@0.1.18 -s=<task> snapshot --filename="$PLAYWRIGHT_MCP_OUTPUT_DIR/start.yml"
 bunx @playwright/cli@0.1.18 -s=<task> find "Save"
 bunx @playwright/cli@0.1.18 -s=<task> click "getByRole('button', { name: 'Save' })"
 bunx @playwright/cli@0.1.18 -s=<task> console
@@ -41,6 +41,7 @@ bunx @playwright/cli@0.1.18 -s=<task> close
 ```
 
 Use semantic locators in tests. Use snapshot refs only during exploration.
+Include the output directory in explicit artifact paths.
 Prefer a search, limited-depth snapshot, or element snapshot to a full snapshot.
 Use `--raw` only for small results that feed another command.
 

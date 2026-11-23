@@ -2,12 +2,13 @@
 
 Exploratory recording produces WebM video. Keep it under `.tmp/`; use
 `capture-local-ui` and the repository runner for a final recording or PR
-evidence.
+evidence. Video recording requires Playwright's FFmpeg binary. If it is
+missing, follow the project's provisioning instructions before recording.
 
 ```bash
 export PLAYWRIGHT_MCP_OUTPUT_DIR=.tmp/playwright-cli/<task>
 bunx @playwright/cli@0.1.18 -s=<task> open https://example.test
-bunx @playwright/cli@0.1.18 -s=<task> video-start flow.webm
+bunx @playwright/cli@0.1.18 -s=<task> video-start "$PLAYWRIGHT_MCP_OUTPUT_DIR/flow.webm"
 bunx @playwright/cli@0.1.18 -s=<task> video-chapter "Starting flow" \
   --description="Opening the target state" --duration=1500
 bunx @playwright/cli@0.1.18 -s=<task> video-show-actions \
