@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "id": "example-change",
+      "type": "change",
+      "issues": [
+        { "level": "ERROR", "path": "file", "message": "Change parse failure" },
+        { "level": "ERROR", "path": "demo/spec.md", "message": "Delta parse failure" },
+        {
+          "level": "ERROR",
+          "path": "demo/spec.md",
+          "message": "Requirement must contain SHALL or MUST"
+        }
+      ]
+    },
+    {
+      "id": "demo",
+      "type": "spec",
+      "issues": [{ "level": "ERROR", "path": "file", "message": "Main spec parse failure" }]
+    }
+  ]
+}

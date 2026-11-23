@@ -1,0 +1,124 @@
+{
+  "cases": [
+    {
+      "authoritative_evidence": "proposal.md explicitly assigns authorization to a sibling change",
+      "candidate": "authorization is not implemented by this active delta",
+      "expected_action": "EXCLUDE",
+      "rule_id": "Q009"
+    },
+    {
+      "authoritative_evidence": "the delta links create validation but does not state whether every rule applies to manage",
+      "candidate": "manage is missing inherited end-date validation",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q006"
+    },
+    {
+      "authoritative_evidence": "main spec and shipped handler return different status codes",
+      "candidate": "API status contradicts shipped specification",
+      "expected_outcome": "FINDING",
+      "rule_id": "C002"
+    },
+    {
+      "authoritative_evidence": "the requirement says exactly one row, but the schema and write paths permit additional rows",
+      "candidate": "the implementation cannot preserve the specified singleton invariant",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q013"
+    },
+    {
+      "authoritative_evidence": "repository house style explicitly permits a reference-data table in place of a scenario",
+      "candidate": "the upstream validator requires a scenario",
+      "expected_outcome": "ACCEPTED_EXCEPTION",
+      "rule_id": "S901"
+    },
+    {
+      "authoritative_evidence": "the target introduces Guest Mode as behavior-controlling, but the target, current domain, data dictionary, and linked open PRs provide no definition",
+      "candidate": "Guest Mode is an undefined domain concept",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q002"
+    },
+    {
+      "authoritative_evidence": "the profile requires Address display while current Identity has no address fact and the change does not define whether this is billing or profile address",
+      "candidate": "the displayed address has no authoritative owner or source",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q014"
+    },
+    {
+      "authoritative_evidence": "the proposal assigns Notes to a later sibling story while the delta permanently prohibits Notes from appearing",
+      "candidate": "a delivery exclusion is encoded as a durable product prohibition",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q015"
+    },
+    {
+      "authoritative_evidence": "the proposal marks account role meaning and source TBD while the delta allows the profile to display it",
+      "candidate": "required behavior assumes an answer that the same change leaves unresolved",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q016"
+    },
+    {
+      "authoritative_evidence": "tasks add API persistence and UI behavior but verification contains only OpenSpec and ASCII checks",
+      "candidate": "the active change has no behavior-test tasks for production implementation",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q017"
+    },
+    {
+      "authoritative_evidence": "the update spec defines request retry but no stale-version outcome when two employees edit the same aggregate",
+      "candidate": "retry coverage does not define concurrent stale update behavior",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q008"
+    },
+    {
+      "authoritative_evidence": "the source leaves address presence rules TBD while the delta allows every address child to be independently optional",
+      "candidate": "optional address behavior does not define partial or clearing semantics",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q006"
+    },
+    {
+      "authoritative_evidence": "the receipt says Order ID, but the API returns a transaction UUID and legacy receipts use a numeric order number",
+      "candidate": "Order ID has no selected source, format, or migration semantics",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q018"
+    },
+    {
+      "authoritative_evidence": "generic Status drives cancellation while payment state and fulfillment state have distinct vocabularies",
+      "candidate": "one Status term conflates payment and fulfillment",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q019"
+    },
+    {
+      "authoritative_evidence": "opening an order page is treated as a cancellation attempt even though the page also shows tracking information",
+      "candidate": "order page context is substituted for the cancellation action",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q020"
+    },
+    {
+      "authoritative_evidence": "the target says Account Role may be omitted and its meaning is TBD while still claiming the profile behavior is specified",
+      "candidate": "optional normative wording permits incompatible profile outcomes",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q021"
+    },
+    {
+      "authoritative_evidence": "the profile spec lists unrelated tabs and future actions it must not show without naming a lasting safety or domain invariant",
+      "candidate": "unbounded negative scope duplicates the proposal non-goals",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q022"
+    },
+    {
+      "authoritative_evidence": "the catalog requires a live inventory image but no store or reader is shipped and the change links no prerequisite PR",
+      "candidate": "required image behavior depends on an unready read model",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q023"
+    },
+    {
+      "authoritative_evidence": "the dashboard requires End Date while the job system records separate scheduled and actual completion times",
+      "candidate": "the read does not select scheduled versus actual completion",
+      "expected_outcome": "QUESTION",
+      "rule_id": "Q024"
+    },
+    {
+      "authoritative_evidence": "the scenario replaces the order, purchase date, source, and destination with A, B, C, and D",
+      "candidate": "single-letter placeholders conceal distinct owners and business meanings",
+      "expected_outcome": "FINDING",
+      "rule_id": "Q025"
+    }
+  ]
+}

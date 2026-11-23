@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "bad-change",
+      "issues": [
+        {
+          "level": "ERROR",
+          "message": "Unexpected parser failure",
+          "path": "example/spec.md"
+        }
+      ],
+      "type": "change",
+      "valid": false
+    }
+  ]
+}

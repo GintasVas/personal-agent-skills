@@ -41,6 +41,7 @@ backup_cmd() { printf 'mkdir -p %q && mv %q %q' "$BACKUP/$2" "$1" "$BACKUP/$2/";
 for skill in "$SRC"/*/; do
   skill="${skill%/}" name="$(basename "$skill")"
   [[ -f "$skill/SKILL.md" ]] || continue
+  [[ ! -f "$skill/.no-install" ]] || continue
   for dir in "${LINK_DIRS[@]}"; do
     dest="$dir/$name" label="$(echo "$dir" | tr '/ ' '__')"
     if [[ -L "$dest" && "$(readlink "$dest")" == "$skill" ]]; then continue; fi
@@ -58,12 +59,14 @@ for skill in "$SRC"/*/; do
   done
 done
 
-# Remove links to skills that were renamed or deleted.
+# Remove managed links to renamed, deleted, or share-only skills.
 for dir in "${LINK_DIRS[@]}"; do
   for link in "$dir"/*; do
     [[ -L "$link" ]] || continue
     target="$(readlink "$link")"
-    [[ "$target" == "$SRC/"* && ! -d "$target" ]] && act "prune $link" "rm $(printf %q "$link")"
+    if [[ "$target" == "$SRC/"* && ( ! -d "$target" || -f "$target/.no-install" ) ]]; then
+      act "prune $link" "rm $(printf %q "$link")"
+    fi
   done
 done
 
@@ -72,6 +75,6 @@ if [[ "$(git -C "$REPO" config core.hooksPath || true)" != .githooks ]]; then
 fi
 
 if [[ $MODE == check && $drift == 1 ]]; then exit 1; fi
-[[ $drift == 1 ]] || say "all skills linked"
+[[ $drift == 1 ]] || say "skill links are up to date"
 [[ $MODE == install && -d "$BACKUP" ]] && say "backups: $BACKUP"
 exit 0

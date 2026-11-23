@@ -8,12 +8,14 @@ scripts/install.sh --dry-run  # show what would change
 scripts/install.sh --check    # exit 1 on drift
 ```
 
-Each skill is symlinked into `~/.agents/skills` (Codex, Cursor), `~/.claude/skills`
+The installer links eligible skills into `~/.agents/skills` (Codex, Cursor), `~/.claude/skills`
 (Claude Code), and the Cursor user store. Copies of the same name in
 `~/.codex/skills` and `~/.cursor/skills` move to
 `~/.local/state/personal-agent-skills/backups/`. Edits apply at once through the
 links. The `post-merge` hook reruns the installer after `git pull`, so new or
 deleted skills link and unlink on their own.
 
-To add a skill, create `skills/<name>/SKILL.md` and run `scripts/install.sh`.
+To add a skill, create `skills/<name>/SKILL.md`. Add a `.no-install` file
+in the skill directory to share it without automatic local installation.
+Run `scripts/install.sh` to update links for the other skills.
 Keep skills harness-neutral; reference bundled files as `<this-skill-dir>/...`.

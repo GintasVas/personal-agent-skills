@@ -1,0 +1,126 @@
+{
+  "coverage": {
+    "checks": [
+      {
+        "check": "ASCII",
+        "detail": "",
+        "status": "COMPLETE"
+      },
+      {
+        "check": "OpenSpec CLI",
+        "detail": "@fission-ai/openspec@1.6.0",
+        "status": "COMPLETE"
+      },
+      {
+        "check": "repository naming",
+        "detail": "",
+        "status": "COMPLETE"
+      }
+    ],
+    "status": "COMPLETE"
+  },
+  "manifest": [
+    "openspec/changes/example-change/Bad-Name.md",
+    "openspec/changes/example-change/Other-Bad.md",
+    "openspec/changes/example-change/proposal.md"
+  ],
+  "openspec_package": "@fission-ai/openspec@1.6.0",
+  "results": [
+    {
+      "evidence": [
+        "Pinned OpenSpec 1.6.0 ERROR"
+      ],
+      "id": "SA-S001-869078791701",
+      "message": "Change parse failure",
+      "path": "openspec/changes/example-change/proposal.md",
+      "requirement": "example-change",
+      "rule_id": "S001",
+      "severity": "P0",
+      "verdict": "VERIFIED"
+    },
+    {
+      "evidence": [
+        "Pinned OpenSpec 1.6.0 ERROR"
+      ],
+      "id": "SA-S001-28787add63f2",
+      "message": "Delta parse failure",
+      "path": "openspec/changes/example-change/specs/demo/spec.md",
+      "requirement": "example-change",
+      "rule_id": "S001",
+      "severity": "P0",
+      "verdict": "VERIFIED"
+    },
+    {
+      "evidence": [
+        "Pinned OpenSpec 1.6.0 ERROR"
+      ],
+      "id": "SA-S001-f279f8a7c86f",
+      "message": "Main spec parse failure",
+      "path": "openspec/specs/demo/spec.md",
+      "requirement": "demo",
+      "rule_id": "S001",
+      "severity": "P0",
+      "verdict": "VERIFIED"
+    },
+    {
+      "evidence": [
+        "openspec/changes/example-change/.openspec.yaml does not exist"
+      ],
+      "id": "SA-S002-0e2a40f4e37c",
+      "message": "Active change is missing .openspec.yaml.",
+      "path": "openspec/changes/example-change/proposal.md",
+      "requirement": "change configuration",
+      "rule_id": "S002",
+      "severity": "P0",
+      "verdict": "VERIFIED"
+    },
+    {
+      "evidence": [
+        "ERROR: Invalid markdown naming in 'openspec/changes/example-change/Bad-Name.md': use snake_case"
+      ],
+      "id": "SA-S013-43a9cb5d04dd",
+      "message": "Repository naming validator failed.",
+      "path": "openspec/changes/example-change/Bad-Name.md",
+      "requirement": "repository naming",
+      "rule_id": "S013",
+      "severity": "P2",
+      "verdict": "VERIFIED"
+    },
+    {
+      "evidence": [
+        "ERROR: Invalid markdown naming in 'openspec/changes/example-change/Other-Bad.md': use snake_case"
+      ],
+      "id": "SA-S013-b9bfb8077bae",
+      "message": "Repository naming validator failed.",
+      "path": "openspec/changes/example-change/Other-Bad.md",
+      "requirement": "repository naming",
+      "rule_id": "S013",
+      "severity": "P2",
+      "verdict": "VERIFIED"
+    },
+    {
+      "evidence": [
+        "Repository house-style suppression"
+      ],
+      "id": "SA-S900-77b1059a6816",
+      "message": "Requirement must contain SHALL or MUST",
+      "path": "openspec/changes/example-change/specs/demo/spec.md",
+      "requirement": "example-change",
+      "rule_id": "S900",
+      "verdict": "ACCEPTED_EXCEPTION"
+    }
+  ],
+  "scope": {
+    "change": "example-change",
+    "mode": "change"
+  },
+  "snapshot": {
+    "branch": "",
+    "commit": "",
+    "dirty": false
+  },
+  "summary": {
+    "accepted_exceptions": 1,
+    "verified": 6
+  }
+}

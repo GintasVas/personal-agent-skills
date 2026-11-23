@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "example-change",
+      "issues": [
+        {
+          "level": "ERROR",
+          "message": "ADDED \"Example Behavior\" must contain SHALL or MUST",
+          "path": "example/spec.md"
+        }
+      ],
+      "type": "change",
+      "valid": false
+    }
+  ]
+}

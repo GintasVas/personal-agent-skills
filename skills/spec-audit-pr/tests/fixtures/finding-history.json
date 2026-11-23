@@ -1,0 +1,26 @@
+{
+  "introduced": [
+    {
+      "path": "openspec/changes/update-schedule/specs/schedule/spec.md",
+      "requirement": "Edit a Schedule Without Overlap",
+      "rule_id": "Q011"
+    }
+  ],
+  "resolved": [
+    {
+      "path": "openspec/changes/update-schedule/specs/schedule/spec.md",
+      "requirement": "Edit a Schedule Without Overlap",
+      "rule_id": "Q006"
+    },
+    {
+      "path": "openspec/changes/update-schedule/specs/schedule/spec.md",
+      "requirement": "local link",
+      "rule_id": "S010"
+    },
+    {
+      "path": "openspec/changes/update-schedule/specs/schedule/spec.md",
+      "requirement": "Keep Started Jobs Unchanged",
+      "rule_id": "Q006"
+    }
+  ]
+}

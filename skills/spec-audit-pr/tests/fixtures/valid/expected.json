@@ -1,0 +1,52 @@
+{
+  "coverage": {
+    "checks": [
+      {
+        "check": "ASCII",
+        "detail": "",
+        "status": "COMPLETE"
+      },
+      {
+        "check": "OpenSpec CLI",
+        "detail": "@fission-ai/openspec@1.6.0",
+        "status": "COMPLETE"
+      },
+      {
+        "check": "repository naming",
+        "detail": "",
+        "status": "NOT_APPLICABLE"
+      }
+    ],
+    "status": "COMPLETE"
+  },
+  "manifest": [
+    "openspec/changes/example-change/.openspec.yaml",
+    "openspec/changes/example-change/proposal.md",
+    "openspec/changes/example-change/specs/example/spec.md"
+  ],
+  "openspec_package": "@fission-ai/openspec@1.6.0",
+  "results": [
+    {
+      "evidence": ["Repository house-style suppression"],
+      "id": "SA-S900-add835996a0e",
+      "message": "ADDED \"Example Behavior\" must contain SHALL or MUST",
+      "path": "openspec/changes/example-change/specs/example/spec.md",
+      "requirement": "example-change",
+      "rule_id": "S900",
+      "verdict": "ACCEPTED_EXCEPTION"
+    }
+  ],
+  "scope": {
+    "change": "example-change",
+    "mode": "change"
+  },
+  "snapshot": {
+    "branch": "",
+    "commit": "",
+    "dirty": false
+  },
+  "summary": {
+    "accepted_exceptions": 1,
+    "verified": 0
+  }
+}
