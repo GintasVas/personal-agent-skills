@@ -1,92 +1,66 @@
 ---
 name: spec-audit-pr
-description: Audits OpenSpec changes and main specs, locally or in a GitHub pull request, with deterministic structural checks and one or more model-pinned spec-reviewers. Shows findings in chat and posts only if the user asks. Use when checking spec validity, quality, traceability, or implementation drift, or when asked to run /spec-audit-pr.
+description: Audit local or PR OpenSpec files for structure, behavior, traceability, and implementation drift. Post only on request.
 argument-hint: '[<PR number|URL>|<change-slug>|<domain>|all] [--model <slug>]'
 disable-model-invocation: true
 ---
 
 # Spec audit
 
-Audit only by default. Do not edit specs or code or post pull request comments
-unless the user explicitly asks after seeing the findings.
+Run `/spec-audit-pr [<PR>|<change-slug>|<domain>|all] [--model <slug>]`.
+In Pi, use `/skill:spec-audit-pr` with the same scope and
+`[--model <cursor-slug|provider/id[:thinking]>]`.
+Audit only by default. Edit or post only on explicit request after showing
+findings.
 
-## Model selection
+## Select models
 
-Accepted forms:
+Before any other tool call, read only the host file for model selection and launch:
 
-- `/spec-audit-pr` opens the model chooser, then audits the active changes and
-  main specs that differ from the base branch.
-- `/spec-audit-pr <change-slug>` or `/spec-audit-pr <domain>` opens the model
-  chooser, then audits that active change or main spec domain.
-- `/spec-audit-pr all` opens the model chooser, then audits every active change
-  and every main spec.
-- `/spec-audit-pr <PR>` opens the model chooser, then audits the OpenSpec files
-  that PR changes.
-- `--model <slug>` uses that exact slug. Repeat `--model` to run several
-  spec-reviewers.
-- In Pi, invoke `/skill:spec-audit-pr [<PR>|<change-slug>|<domain>|all] [--model <cursor-slug|provider/id[:thinking]>]`.
+- Pi ([hosts/pi.md](hosts/pi.md)) if `PI_CODING_AGENT=true` or the system prompt names Pi. This takes precedence over Cursor SDK detection.
+- [Cursor desktop](hosts/cursor-desktop.md) or [Cursor Agent CLI](hosts/cursor-cli.md).
+- [Codex](hosts/codex.md). Select the model and reasoning effort together.
+- Amp. Use this thread's `agentMode` from `amp.get_thread_status`. Launch one worker with `Task`. Skip the chooser.
+- [Other hosts](hosts/other.md).
 
-Before any other tool call, read only the host file that matches where you
-run. Follow it for model selection and for launching spec-reviewers:
+Without `--model`, use the chooser where supported. With `--model <slug>`, use
+that exact slug. Repeat `--model` for multiple workers. Remove exact duplicates
+in selection order. Match slugs against the host's available list. If any is
+unavailable, stop before launch. Show the unavailable slug and exact available
+slugs. Ask for a new selection. Never normalize, invent, or substitute slugs.
 
-- Pi (`PI_CODING_AGENT=true` or a system prompt saying you run inside pi),
-  even when the Cursor SDK also identifies the host as Cursor:
-  [`hosts/pi.md`](hosts/pi.md)
-- Cursor desktop GUI: [`hosts/cursor-desktop.md`](hosts/cursor-desktop.md)
-- Cursor Agent CLI: [`hosts/cursor-cli.md`](hosts/cursor-cli.md)
-- Codex: [`hosts/codex.md`](hosts/codex.md), selecting model and reasoning effort together.
-- Amp: no host file. The only available model is the one this thread runs on (`agentMode` from `amp.get_thread_status`). Do not ask for one. Launch one spec-reviewer with the `Task` tool.
-- any other host: [`hosts/other.md`](hosts/other.md)
-
-Treat slugs as opaque strings. Match them exactly against the host's available
-model list. Never normalize, invent, or substitute a slug. If any selected slug
-is unavailable, do not launch a spec-reviewer. Show the unavailable slug and
-exact available slugs, then ask for a corrected selection. Remove exact
-duplicates while preserving selection order.
-
-After the card response, start the next chat message with
-`Selected: <exact slug>.` once for each selected slug in selection order. Use
-only those exact slugs in later chat text.
-
-Use plain technical English for chat, findings, and posted comments. Apply
-the target repository's writing rules when available.
+After a chooser response, put this first in the next chat message:
+`Selected: <exact slug>.` for each selection, in order. Use those exact names
+in later chat. Apply the target repo's writing rules when available. Use plain
+technical English for chat, findings, and comments.
 
 ## Scope
 
-Each audit separates targets from context. Targets get findings. Context is
-read as authority and gets none.
+| Argument | Audit targets |
+| --- | --- |
+| None | Active changes and main specs that differ from the merge base, including uncommitted and untracked files |
+| `all` | All active changes and main specs |
+| PR number or GitHub pull URL | Changed files under `openspec/`, without checkout |
+| Existing change slug or main spec domain | That change or domain |
 
-With no scope argument, the targets are the active changes and main spec
-domains whose files differ from the merge base with the base branch, including
-uncommitted and untracked files. `all` targets every active change and every
-main spec. A positional PR number or GitHub pull URL selects a PR and audits it
-without checking it out. An existing `openspec/changes/<slug>/` selects that
-change; an existing `openspec/specs/<domain>/` selects that domain. `all` is a
-keyword, never a slug. Reject an argument that is none of these.
+Reserve `all` as a keyword. Reject other arguments. For a change, touched
+main specs are context. Audit a main spec only for `all`, a named domain,
+a direct branch or PR edit, or a user request. Targets get findings.
+Read context as authority.
 
-For a change target, the main specs of the domains its delta specs touch are
-context. Spec-reviewers read them to judge the deltas, but do not report
-issues in them or run conformance against them. A main spec is a target only
-for `all`, for `<domain>`, when the branch or PR edits it directly, or when the
-user asks for it.
+Run traceability on targeted changes with `source.md` or when requested.
+Run conformance only on main spec targets. Reverse conformance finds code
+without a backing spec. Run it only when the user requests deep conformance.
 
-Traceability runs only for a targeted change with `source.md` or when the user
-requests it. Conformance runs only for main spec targets, never active-change
-deltas or context. Reverse conformance (code with no backing spec) runs only
-when the user requests deep conformance.
-
-Explicit proposal/design non-goals are hard scope exclusions. Do not ask the
-target to implement them or search for evidence to pull them back into scope.
-If the target itself adds a normative requirement about excluded or
-sibling-owned behavior, audit only that contradiction under Q015 or T003.
+Explicit proposal and design non-goals are hard scope exclusions. Do not
+request implementation or search for evidence to include them. If a target
+adds a normative rule about excluded or sibling-owned behavior, audit only
+that contradiction under Q015 or T003.
 
 ## Pin the audit input
 
-Treat skill scripts as command entrypoints. Run each documented command at its
-workflow step. Do not read or inspect their source. Replace
-`<this-skill-dir>` with the absolute path to this skill directory.
-
-For the default scope, `all`, a change, or a domain, run one of:
+Run the bundled scripts at the steps below. Replace `<this-skill-dir>`
+with the absolute path to this skill directory. Do not inspect script source.
 
 ```bash
 node <this-skill-dir>/scripts/prepare-local-spec-input.mjs changed
@@ -95,69 +69,54 @@ node <this-skill-dir>/scripts/prepare-local-spec-input.mjs change <slug>
 node <this-skill-dir>/scripts/prepare-local-spec-input.mjs domain <name>
 ```
 
-`changed` compares against `origin/HEAD`, falling back to `origin/main`. Pass
-`changed --base <ref>` only when the user names another base. If nothing
-differs, it fails and names the base; report that and suggest `all`, a change
-slug, or a domain.
+`changed` uses `origin/HEAD` or falls back to `origin/main`. Use
+`changed --base <ref>` only when the user names a base. If nothing differs,
+report the base and suggest `all`, a change slug, or a domain.
 
-Use its reported `directory` as `REVIEW_DIR` and its `root` as `code_root`.
-Its `changes` and `domains` are the targets; the manifest's `contextFiles` are
-context. Retain the reported `inputDigest`, which covers both. After the audit,
-rerun the same command, compare digests, and clean up the second directory. If
-the digests differ, warn that the findings may be stale.
-
-For a pull request, require a number or GitHub pull URL. Do not check it out.
+For local audits, set `REVIEW_DIR` from `directory` and `code_root` from
+`root`. Target the reported `changes` and `domains`. Read manifest
+`contextFiles` as authority. Keep `inputDigest`, which covers both.
+After the audit, repeat the command and remove its second directory.
+Warn of possible staleness if the digests differ.
 
 ```bash
 node <this-skill-dir>/scripts/prepare-pr-review-input.mjs prepare "<PR>"
 ```
 
-Use its reported `directory` as `REVIEW_DIR` and its `source` as `code_root`.
+Use the reported `directory` as `REVIEW_DIR`. Set `code_root` to the detached head worktree
+`source` for all PR context, including stack parents. The patch covers the
+declared base-to-head delta. Run any host-required `source` preflight before
+building bundles.
 If prepare fails or does not report `directory`, report the failure and stop.
-Do not construct substitute patches, manifests, line maps, or bundles. If the
-PR changes no files under `openspec/`, say so, clean up, and stop.
-
-For PRs, `source` is a detached head worktree, including stack parents. The
-patch is the declared base-to-head delta. Use `source`, not the caller checkout
-or default ref, for bounded reads.
-
-Before materializing review bundles, run any `source` preflight your host file
-requires.
+Do not construct substitute patches, manifests, line maps, or bundles.
+If the PR changes no files under `openspec/`, say so, clean up, and stop.
 
 ## Scope large reviews
 
-For a PR with more than 10 changed spec files or 500 changed lines, group the
-reviewable OpenSpec hunk IDs into self-contained bundles: one per active change
-and one per main spec domain. Do not send the full patch to every worker. Put
-every reviewable hunk outside `openspec/` in one bundle named `context`; the
-bundle validator requires every reviewable hunk in exactly one bundle.
-Spec-reviewers read the `context` bundle as conformance context, not targets.
+Above 10 changed spec files or 500 changed lines, bundle reviewable hunks
+instead of giving workers the full patch. Use one bundle per active change
+or main spec domain. Keep a change's proposal, design, tasks, and deltas
+together. Put all reviewable hunks outside `openspec/` in one bundle named
+`context`. Use it only for conformance context. Keep bundles bounded.
+Assign every reviewable hunk to exactly one bundle.
 
-Every selected model gets all materialized bundles and reviews them serially.
-Never partition bundles by model, change, domain, or lane.
-
-Start with `$REVIEW_DIR/review-bundles.json`, which assigns reviewable hunks by
-`bundleCandidate`. Refine only its `hunkIds` arrays when related files need a
-shared bundle. Keep a change's proposal, design, tasks, and delta specs
-together. Keep bundles bounded. Materialize the bundle files,
-then verify their contents before launching workers:
+Use `$REVIEW_DIR/review-bundles.json`. It groups reviewable hunks by
+`bundleCandidate`. Change only `hunkIds` to group related files.
 
 ```bash
 node <this-skill-dir>/scripts/build-review-bundles.mjs \
   "$REVIEW_DIR/manifest.json" "$REVIEW_DIR/review-bundles.json"
-
 node <this-skill-dir>/scripts/verify-review-bundles.mjs \
   "$REVIEW_DIR/manifest.json" "$REVIEW_DIR/materialized-review-bundles.json"
 ```
 
-The build command writes `$REVIEW_DIR/review-index.json`. Pass that compact
-index to every spec-reviewer; per-bundle anchor files replace worker reads of
-the global line map.
+Verify bundles before launch. Give all verified bundles to every model.
+Each model reviews them in order. Use the generated `review-index.json` and
+per-bundle anchors. The parent does not read the global line map.
 
-## Run the structural pass
+## Run the structural audit
 
-Run the bundled validator once against `code_root`, using `--change` for each
-target change and `--all` when any main spec is a target:
+Run the validator for each target change. Use `--all` when any main spec is a target.
 
 ```bash
 python3 <this-skill-dir>/scripts/audit_structure.py --profile pr \
@@ -166,20 +125,16 @@ python3 <this-skill-dir>/scripts/audit_structure.py --profile pr \
   --root "$code_root" --all > "$REVIEW_DIR/structure-all.json"
 ```
 
-The shared validator uses `--profile pr` for P0/P1/P2 findings and repository
-file anchors. It emits normalized JSON and invokes pinned `@fission-ai/openspec@1.6.0`. Do
-not substitute `@latest`. Exit 1 means it found structural failures. Exit 2
-means partial coverage. Both still write a valid report.
+The PR profile emits normalized JSON with P0 to P2 and repository anchors.
+It uses pinned `@fission-ai/openspec@1.6.0`. Do not substitute `@latest`.
+Exit 1 means findings. Exit 2 means partial coverage. Both emit a report.
+Preserve failed rules as `NOT_VERIFIED`.
 
-Pass `--schema <name>` for each additional schema the project documents.
-Use `--house-style` only when the project adopts the conventions and
-exceptions in [CHECKLIST.md](CHECKLIST.md). For a naming check, pass
-`--naming-validator <absolute-path>` only for a trusted validator outside
-the PR checkout. Preserve any failed check as `NOT_VERIFIED`.
-
-Convert the reports into postable findings. For a PR, pass
-`--line-map "$REVIEW_DIR/line-map.json"`; for local scope, pass
-`--manifest "$REVIEW_DIR/manifest.json"`:
+Repeat `--schema <name>` for additional documented schemas. Use
+`--house-style` only for projects that adopt the [checklist](CHECKLIST.md)
+conventions and exceptions. For naming, use
+`--naming-validator <absolute-path>` only with a trusted script outside
+the PR checkout.
 
 ```bash
 node <this-skill-dir>/scripts/structural-findings.mjs \
@@ -187,149 +142,124 @@ node <this-skill-dir>/scripts/structural-findings.mjs \
   > "$REVIEW_DIR/structural-findings.json"
 ```
 
-Its `findings` are complete comment entries attributed to `audit_structure.py`.
-Present and post them as written. Its `notes` feed the coverage notes,
-including verified results outside the patch or audit targets. Spec-reviewers
-do not receive the structural reports.
+For local scope, replace `--line-map "$REVIEW_DIR/line-map.json"` with
+`--manifest "$REVIEW_DIR/manifest.json"`. Present `findings` unchanged.
+They already credit `audit_structure.py`. Use `notes` for coverage and
+verified results outside the patch or audit targets. Keep structural
+reports out of reviewer prompts.
 
-## Run the audit
+## Run reviewers
 
-The parent does not review. Before launching, create and maintain a
-spec-reviewer job list in selection order. This is internal orchestration
-state; do not print it in chat. It has exactly one row per selected model:
+The parent does not review. For local scope, pass the spec manifest and
+`code_root`. Pass absolute paths to
+[`REFERENCE.md`](REFERENCE.md), [`CHECKLIST.md`](CHECKLIST.md), and
+[`LANES.md`](LANES.md). State the traceability and deep conformance
+settings. Name the main specs that get conformance, or state there are none.
+
+Keep one private job per selected model, in selection order:
 
 ```text
 { model: "<exact slug>", reviewerId: "pending", status: "planned" }
 ```
 
-Read `<this-skill-dir>/agents/spec-reviewer.md` directly, then run
-each job using its instructions in the prompt. Target that job's exact model
-slug and include `Reviewer model: <exact slug>` in every prompt. Include the
-spec-reviewer contract, applicable writing rules, absolute input paths, the
-absolute `code_root`, and the absolute paths of
-[`REFERENCE.md`](REFERENCE.md), [`CHECKLIST.md`](CHECKLIST.md), and
-[`LANES.md`](LANES.md). State whether traceability and deep conformance apply,
-and name the main spec targets that get conformance, or say there are none.
+Read `<this-skill-dir>/agents/spec-reviewer.md`. Put its contract and
+`Reviewer model: <exact slug>` in the prompt. Include applicable writing rules,
+absolute input paths, and absolute `code_root`. Use separate numbered prompt and
+result files for each model. Launch by the host instructions with the exact
+model slug and `code_root` as its code root. Pass the prompt directly without
+invoking `/spec-audit-pr`.
 
-Launch each job as your host file describes, with its exact slug, its complete
-prompt, and `code_root` as the code root. Use distinct numbered prompt and
-result files for each model. Read each result before synthesis. If any job
-fails or returns no result, report the failure; do not attribute findings to
-that model or present an incomplete audit. This direct prompt handoff does not
-invoke `/spec-audit-pr`.
-When a launch returns, replace that row's `reviewerId` with the returned
-reviewer-session ID, whether it came from Pi, Cursor Agent CLI, or the native
-subagent, and set `status` to `launched`.
-
-After all launch calls return, compare the job list to the selected models
-before accepting spec-reviewer results. Every selected model must have exactly
-one launched spec-reviewer. Do not include the job list or launch counts in
-successful audit output. If a launch is missing, failed, or cannot be
-attributed to a selected model, report the expected and launched counts and do
-not synthesize or present findings as complete.
+Record the returned runner session or native subagent ID in `reviewerId`.
+Set status to `launched`. Before accepting results, match the job list to
+the selection. Require one launched reviewer per selected model. If a launch
+is missing, fails, or cannot be attributed, report expected and launched
+counts. Keep counts and the job list out of successful output. Read every
+result before synthesis. Stop synthesis if a launch or result fails or is missing.
+Report the failure.
+Do not attribute findings to that model or present the review as complete.
 
 For bundled PRs, pass `review-index.json` and `source`. For small PRs, pass
-`patch.diff`, `line-map.json`, `manifest.json`, and `source`. Give workers the
-input paths, not line-map contents. The parent does not read the global line
-map. For local scope, pass the spec manifest and `code_root`.
+`patch.diff`, `line-map.json`, `manifest.json`, and `source`. Pass paths only.
 
 ## Verify, present, and post
 
-For a pull request, verify before presenting:
+For a PR:
 
 ```bash
 node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW_DIR/manifest.json"
 ```
 
-Verification fails when the base-to-head patch changed. Then warn that the
-findings are stale and do not post them. When only the head moved, such as a
-base merge that left the patch unchanged, verification succeeds, prints the
-new `headRefOid`, and lists changed files outside the patch in
-`contextChangesPath`. Mark any finding or question whose searched sources
-appear in that list as stale. Post with the `headRefOid` that verification
-printed.
+Verify before presentation. If verification fails, warn that the patch changed
+and the findings are stale. Do not post. If the head moved and the patch stayed
+the same, verification returns a new `headRefOid` and `contextChangesPath`.
+Mark any finding or question whose searched sources appear in that list as stale.
+Use the verified `headRefOid` to post.
 
-Say which models ran. Synthesize without discovering new findings. Same-anchor
-reports are candidates for corroboration; merge only when they share a rule ID,
-path, and requirement and clearly identify the same root cause. Show the
-canonical postable comment with supporting model attribution, retain original
-wording in chat, and keep ambiguous reports separate. Order the report as
-[`REFERENCE.md`](REFERENCE.md) `Stable report order` describes: numbered
-structural and reviewer findings together by severity P0 through P2, then
-review questions continuing the same numbering, then unnumbered coverage notes
-from `structural-findings.json` `notes`. Coverage notes stay in chat. End with
-the audited SHA, coverage, and the worst finding.
+Name the exact models that ran. Synthesize without discovering new findings.
+Merge same-anchor reports only when they share a rule ID, path, requirement, and root cause. Show the canonical
+postable comment and supporting models. Keep original wording in chat and
+keep ambiguous reports separate.
 
-For local scope, findings stay in chat. For a pull request, end the turn with
-the numbered report and ask:
+Follow [Stable report order](REFERENCE.md#stable-report-order). Number all
+structural and reviewer findings together in P0 to P2 order. Continue
+numbering review questions. Add unnumbered notes from
+`structural-findings.json`. Coverage notes stay in chat. End with the audited
+SHA, coverage, and worst finding.
+
+For local scope, report in chat. For a PR, end the turn with the report and ask:
 `Reply "post all", "post findings", "post 1,3", or "post none".`
 
-Pass the selected models and approved findings and questions as one JSON
-object:
-
-```text
-{
-  "selectedModels": ["<exact slug>", "<exact slug>"],
-  "comments": [
-    {
-      "body": "<canonical finding body>",
-      "modelSlugs": ["<exact slug>"],
-      "findingKey": "<rule ID>:<path>:<requirement name>",
-      "path": "<path>",
-      "line": 1,
-      "side": "RIGHT",
-      "anchor": "<full changed line>"
-    },
-    {
-      "body": "<canonical finding body>",
-      "modelSlugs": ["<exact slug>"],
-      "findingKey": "<rule ID>:<path>:<requirement name>",
-      "path": "<path>",
-      "anchor": "none"
-    }
-  ]
-}
-```
-
-`modelSlugs` must contain only spec-reviewer jobs that reported that finding.
-Copy each approved entry from `structural-findings.json` `findings` unchanged;
-its `tool` field replaces `modelSlugs`. Build every reviewer `findingKey` from
-the rule ID, path, and requirement name the spec-reviewer returned. Do not
-include a `Found by` footer in `body`. The posting command rejects invalid
-attribution, appends the deterministic `Found by` footer ordered by
-`selectedModels`, and embeds a hidden marker derived from `findingKey`. A
-review question body starts with its
-`**[Question] - <rule ID and name> - confidence <N>:**` heading, followed by
-`Question:` and `Why it matters:`. Searched sources stay in chat.
-
-Post only after explicit approval. Pass the JSON object on standard input:
+Post only after explicit approval.
 
 ```bash
 node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" -
 ```
 
-The command confirms the head, validates and posts the full batch, then prints
-one URL per comment. It skips any finding whose marker is already on the PR and
-prints `alreadyPosted=<url>`; report those as already posted rather than new.
+Pass one JSON object on standard input.
 
-`post all` includes every numbered finding and review question, including
-those without a changed anchor and approved `Unrelated discovered issue`
-findings. `post findings` excludes review questions. `post 1,3` selects from
-the same numbered list. A finding or question without a changed anchor uses
-`"anchor": "none"` and posts as one general PR comment that names its file.
-Start an unrelated finding's body, after the heading, with
-`Unrelated discovered issue.` These are standalone PR comments, never a GitHub
-review. The spec-reviewers do not post.
+```json
+{
+  "selectedModels": ["<exact slug>", "<exact slug>"],
+  "comments": [{
+    "body": "<canonical finding body>",
+    "modelSlugs": ["<exact slug>"],
+    "findingKey": "<rule ID>:<path>:<requirement name>",
+    "path": "<path>",
+    "line": 1,
+    "side": "RIGHT",
+    "anchor": "<full changed line>"
+  }]
+}
+```
+
+Use only reporting reviewer jobs in `modelSlugs`. Build `findingKey` from
+the returned rule ID, path, and requirement. Copy approved structural entries
+unchanged. Their `tool` replaces `modelSlugs`. Omit the `Found by` footer.
+The script rejects invalid attribution. It adds the footer in model selection
+order and a hidden marker from `findingKey`.
+
+Use `**[Question] - <rule ID and name> - confidence <N>:**` as the question
+heading. Follow it with `Question:` and `Why it matters:`. Keep searched
+sources in chat.
+For an unanchored finding or question, use `"anchor": "none"`. Omit `line`
+and `side`. The script posts one general PR comment and names the file.
+Put `Unrelated discovered issue.` after the heading of an unrelated finding.
+Post standalone comments. Reviewers never post.
+
+`post all` covers every numbered finding and question, including unanchored
+and approved unrelated entries. `post findings` excludes review questions.
+`post 1,3` selects from that same list. The script verifies the head and full
+batch. It returns one URL per comment.
+Report `alreadyPosted=<url>` as already posted.
 
 ## Cleanup
 
-Keep the reported temporary directory while showing findings and waiting for
-the user's posting decision. After posting, declining to post, rejecting stale
-findings, or finishing a local audit, remove it:
+Keep the reported directory while you show findings and wait for a posting
+decision. Remove it after posting, declining, or rejecting stale findings, or finishing a local audit.
 
 ```bash
 node <this-skill-dir>/scripts/cleanup-review-input.mjs "<reported-directory>"
 ```
 
-Each prepare removes marked review inputs older than 24 hours. To remove them
-now, run `cleanup-review-input.mjs --stale`.
+Prepare prunes marked inputs older than 24 hours. To prune now, run
+`cleanup-review-input.mjs --stale`.

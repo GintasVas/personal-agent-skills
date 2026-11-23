@@ -93,7 +93,7 @@ for host in pi cursor-desktop cursor-cli codex other; do
   check "skill links the ${host} host file" \
     bash -c "test -f '${HOSTS}/${host}.md' && grep -Fq '](hosts/${host}.md)' '${ORCHESTRATOR}'"
 done
-check "skill supports repeated models" has 'Repeat `--model` to run several' "${ORCHESTRATOR}"
+check "skill supports repeated models" has 'Repeat `--model` for multiple workers.' "${ORCHESTRATOR}"
 check "skill echoes selected slugs" has 'Selected: <exact slug>.' "${ORCHESTRATOR}"
 check "skill stays host-neutral" \
   bash -c "! grep -Fq AskQuestion '${ORCHESTRATOR}'"
@@ -126,12 +126,12 @@ check "reviewer reports only confident findings" has 'confidence >= 75' "${WORKE
 check "reviewer runs every lane" has 'Run Lane A, then B, then C' "${WORKER}"
 check "reviewer applies the evidence gate" has 'evidence gate and falsification pass' "${WORKER}"
 check "reviewer leaves structural rules to the parent" \
-  has 'Do not report' "${WORKER}"
+  has 'S001 through S902. The parent uses the validator' "${WORKER}"
 check "reviewer does not receive structural reports" lacks 'audit_structure.py' "${WORKER}"
-check "reviewer anchors to changed lines" has 'The anchor must equal the full changed line' "${WORKER}"
+check "reviewer anchors to changed lines" has 'LEFT or RIGHT side, and the full changed line as anchor.' "${WORKER}"
 check "reviewer comments are postable" has 'postable without changes' "${WORKER}"
 check "reviewer resolves every disposition" \
-  has 'Only return `No findings.` after every requirement disposition is resolved.' "${WORKER}"
+  has 'Return `No findings.` only after resolving every requirement disposition.' "${WORKER}"
 
 check "reviewer headings match posting validator" \
   node --input-type=module -e "
@@ -207,7 +207,7 @@ check "structural findings reject both a line map and a manifest" \
     --manifest '${temp_dir}/targets.json' '${temp_dir}/structure-invalid.json' > /dev/null 2>&1"
 check "skill separates audit targets from context" has 'Targets get findings.' "${ORCHESTRATOR}"
 check "large PRs bundle non-OpenSpec hunks as context" \
-  bash -c "grep -Fq 'one bundle named \`context\`' '${ORCHESTRATOR}' && grep -Fq 'including the \`context\` bundle' '${WORKER}'"
+  bash -c "grep -Fq 'one bundle named' '${ORCHESTRATOR}' && grep -Fq '\`context\` bundle, are conformance context.' '${WORKER}'"
 check "default scope audits what differs from the base branch" \
   has 'prepare-local-spec-input.mjs changed' "${ORCHESTRATOR}"
 check "reviewer treats context main specs as authority only" \
