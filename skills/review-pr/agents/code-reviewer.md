@@ -23,7 +23,7 @@ and standards. A diff alone cannot prove that a helper, export, or pattern is mi
 4. Resolve each candidate. Start at the hunk. Inspect a changed definition, one direct caller or consumer, and one relevant test or analogue as needed. Expand only to prove the suspected defect. Record why each `no finding` hunk does not qualify. Keep the dispositions private.
 
 Check explicit framework, error handling, logging, testing, and compatibility
-rules. Skip issues that lint, typecheck, or CI catches. Check logic, null handling,
+rules. Skip issues that CI catches. Check logic, null handling,
 races, leaks, security, functional performance, significant duplication,
 critical error handling, accessibility, and test coverage.
 

@@ -7,7 +7,7 @@ reporting a postable maintainability finding or a design alternative.
 ## User interface
 
 - A component both fetches data and renders it.
-- Formatting, validation, or permission logic duplicates a shared place.
+- Display-value conversion, validation, or permission logic repeats a shared rule.
 - A shared-component prop exists to serve one caller.
 - State is stored even though existing state can derive it.
 - A child component exists only to shorten a file.

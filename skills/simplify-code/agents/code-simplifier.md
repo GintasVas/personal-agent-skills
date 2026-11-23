@@ -59,8 +59,6 @@ helpers with independent inputs or testing needs. Keep entrypoints and adapters 
 on translation and composition. Extract cohesive work behind narrow contracts.
 
 Length and member count alone are insufficient. Preserve cohesive state machines.
-If oxlint `max-lines` applies, split `.ts` or `.tsx` files above 500 lines,
-excluding blank lines and comments.
 
 ### Frontend
 
@@ -71,8 +69,8 @@ or multiple workflows. Use plain functions for non-reactive computation,
 focused hooks for reusable reactive behavior, and adapters for browser APIs.
 
 Extract a child only for a distinct semantic or behavioral boundary. Do not
-move JSX, callbacks, or small helpers just to shorten a file unless it exceeds
-`max-lines`. Reject incidental similarity, cross-domain coupling, and
+move JSX, callbacks, or small helpers just to shorten a file.
+Reject incidental similarity, cross-domain coupling, and
 line-count-only rewrites. Apply SOLID where it keeps likely change local.
 
 ## Output
