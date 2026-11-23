@@ -10,8 +10,11 @@ import {
   parseReviewLineMap,
   pullRequestRepository,
   readInlineCommentInput,
+  readJsonFile,
   run,
-  validateInlineComments
+  sha256,
+  validateInlineComments,
+  verifiedReviewInput
 } from './lib/review-automation.mjs';
 
 const FINDING_MARKER = /<!-- agent-finding:([0-9a-f]{12}) -->/g;
@@ -63,8 +66,9 @@ const defaultDependencies = {
         .map((line) => JSON.parse(line))
     );
   },
-  getDiff(reference) {
-    return run('gh', ['pr', 'diff', reference]);
+  getVerifiedInput(pullRequest, manifest) {
+    const root = run('git', ['rev-parse', '--show-toplevel']).trim();
+    return verifiedReviewInput(root, manifest, pullRequest);
   },
   getPullRequest
 };
@@ -148,7 +152,7 @@ function postedFindings(dependencies, repository, pullRequestNumber) {
 }
 
 export function postInlineComments(
-  { comments, expectedHeadRefOid, reference, selectedModels },
+  { comments, expectedHeadRefOid, manifest, reference, selectedModels },
   dependencies = defaultDependencies
 ) {
   const pullRequest = dependencies.getPullRequest(reference);
@@ -164,7 +168,15 @@ export function postInlineComments(
   }
 
   const repository = pullRequestRepository(pullRequest.url);
-  const lineMap = parseReviewLineMap(dependencies.getDiff(reference));
+  const { patch, contextChanges } = dependencies.getVerifiedInput(pullRequest, manifest);
+  const lineMap = parseReviewLineMap(patch);
+  const changedPaths = new Set(contextChanges);
+  if (changedPaths.size > 0 && comments.some(({ evidencePaths }) =>
+    !Array.isArray(evidencePaths) || evidencePaths.length === 0 ||
+    evidencePaths.some((path) => typeof path !== 'string' || !path || changedPaths.has(path))
+  )) {
+    throw new Error('Review context changed. Prepare fresh input, review affected findings, and obtain approval again.');
+  }
   const attributedComments = withModelAttribution(comments, selectedModels);
   validateInlineComments(attributedComments, lineMap);
   const posted = attributedComments.some((comment) => comment.digest)
@@ -207,19 +219,25 @@ export function postInlineComments(
 }
 
 function main() {
-  const [reference, expectedHeadRefOid, commentsPath] = process.argv.slice(2);
+  const [reference, expectedHeadRefOid, manifestPath, commentsPath] = process.argv.slice(2);
 
-  if (!reference || !expectedHeadRefOid || !commentsPath) {
+  if (!reference || !expectedHeadRefOid || !manifestPath || !commentsPath) {
     fail(
-      'Usage: post-inline-pr-comments.mjs <PR> <headRefOid> <comments.json|->.',
-      'Pass the reviewed PR, its pinned SHA, and a JSON object with selectedModels and approved findings or - for standard input.'
+      'Usage: post-inline-pr-comments.mjs <PR> <headRefOid> <manifest.json> <comments.json|->.',
+      'Pass the reviewed PR, verified SHA, the review manifest, and the approved findings.'
     );
   }
 
   try {
     const { comments, selectedModels } = readInlineCommentInput(commentsPath);
+    const manifest = readJsonFile(manifestPath, 'Could not read the pinned review manifest.', 'Pass the manifest written by prepare.');
+    for (const comment of comments) {
+      comment.findingKey ??= `review:${sha256(JSON.stringify([
+        comment.path, comment.line, comment.side, comment.anchor, comment.body
+      ]))}`;
+    }
     postInlineComments(
-      { comments, expectedHeadRefOid, reference, selectedModels },
+      { comments, expectedHeadRefOid, manifest, reference, selectedModels },
       {
         ...defaultDependencies,
         onPosted(url) {

@@ -136,7 +136,8 @@ node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW
 If verification fails, warn that the patch changed
 and the findings are stale. Do not post. If the head moved and the patch stayed
 the same, verification returns a new `headRefOid` and `contextChangesPath`.
-Mark findings stale when their preserved constraint depends on a listed file.
+Mark findings stale if their `evidencePaths` intersect that list. If the list
+has entries and evidence paths are missing, recheck the finding.
 Use the verified `headRefOid` to post.
 
 Name the exact models that ran. Synthesize without discovering new findings.
@@ -150,7 +151,7 @@ For a PR, end the turn with the report and ask:
 For local reviews, keep findings in chat. For a PR, post only after explicit approval.
 
 ```bash
-node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" -
+node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" "$REVIEW_DIR/manifest.json" -
 ```
 
 Pass the selected models and approved inline findings as one JSON object on
@@ -162,6 +163,7 @@ standard input.
   "comments": [{
     "body": "<canonical finding body>",
     "modelSlugs": ["<exact slug>"],
+    "evidencePaths": ["<repo-relative evidence path>"],
     "path": "<path>",
     "line": 1,
     "side": "RIGHT",
@@ -173,8 +175,10 @@ standard input.
 List only the jobs that reported each finding in `modelSlugs`. Omit
 the `Found by` footer from `body`. The script verifies model metadata
 and adds the footer in `selectedModels` order.
-The script verifies and posts the full batch. It prints one URL per inline
-comment.
+Keep each finding's evidence paths. The script rechecks the pinned input
+before posting. It verifies and posts the full batch. It prints one URL per
+comment. Keep the same approved payload on retry. The script skips comments
+it already posted and prints their URLs as `alreadyPosted=<url>`.
 
 `post all` includes approved `Unrelated discovered issue` findings.
 `post 1,3` selects from the same list for inline and unrelated findings.

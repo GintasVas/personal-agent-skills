@@ -69,6 +69,7 @@ export function validateBundlePlan(manifest, bundleInput) {
 
 function patchHunks(patch) {
   const files = [];
+  const hunkCounts = new Map();
   let file;
   let hunk;
 
@@ -81,7 +82,9 @@ function patchHunks(patch) {
       file.header.push(line);
     },
     onHunk(_, line) {
-      hunk = { lines: [line] };
+      const count = (hunkCounts.get(file.path) ?? 0) + 1;
+      hunkCounts.set(file.path, count);
+      hunk = { id: `${file.path}#${count}`, lines: [line] };
       file.hunks.push(hunk);
     },
     onHunkLine({ line }) {
@@ -102,13 +105,12 @@ function sourceFromPatch(manifest) {
   const source = new Map();
 
   for (const file of patchHunks(patch)) {
-    file.hunks.forEach((hunk, index) => {
-      source.set(`${file.path}#${index + 1}`, {
+    for (const hunk of file.hunks) {
+      source.set(hunk.id, {
         header: file.header,
-        lines: hunk.lines,
-        path: file.path
+        lines: hunk.lines
       });
-    });
+    }
   }
 
   return source;
@@ -131,13 +133,12 @@ function sourceFromSnapshots(manifest) {
     const lines = content === '' ? [] : content.replace(/\n$/, '').split('\n');
     source.set(file.hunks[0]?.id, {
       header: [
-        `diff --git a/${file.path} b/${file.path}`,
+        `diff --git ${JSON.stringify(`a/${file.path}`)} ${JSON.stringify(`b/${file.path}`)}`,
         'new file mode 100644',
         '--- /dev/null',
-        `+++ b/${file.path}`
+        `+++ ${JSON.stringify(`b/${file.path}`)}`
       ],
-      lines: [`@@ -0,0 +1,${lines.length} @@`, ...lines.map((line) => `+${line}`)],
-      path: file.path
+      lines: [`@@ -0,0 +1,${lines.length} @@`, ...lines.map((line) => `+${line}`)]
     });
   }
 
@@ -162,9 +163,9 @@ function bundleContent(source, hunkIds) {
       throw new Error(`Could not materialize assigned hunk "${hunkId}" from the pinned input.`);
     }
 
-    const file = files.get(hunk.path) ?? { header: hunk.header, hunks: [] };
+    const file = files.get(hunk.header) ?? { header: hunk.header, hunks: [] };
     file.hunks.push(hunk.lines);
-    files.set(hunk.path, file);
+    files.set(hunk.header, file);
   }
 
   return [...files.values()].flatMap((file) => [...file.header, ...file.hunks.flat()]).join('\n');

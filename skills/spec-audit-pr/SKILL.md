@@ -217,7 +217,7 @@ For local scope, report in chat. For a PR, end the turn with the report and ask:
 Post only after explicit approval.
 
 ```bash
-node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" -
+node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" "$REVIEW_DIR/manifest.json" -
 ```
 
 Pass one JSON object on standard input.

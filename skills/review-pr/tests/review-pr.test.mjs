@@ -232,8 +232,8 @@ test('posting validates the whole batch before the first comment', () => {
               html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
             };
           },
-          getDiff() {
-            return patch;
+          getVerifiedInput() {
+            return { patch, contextChanges: [] };
           },
           getPullRequest() {
             return {
@@ -267,8 +267,8 @@ test('posting adds model attribution in selected-model order', () => {
           html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
         };
       },
-      getDiff() {
-        return patch;
+      getVerifiedInput() {
+        return { patch, contextChanges: [] };
       },
       getPullRequest() {
         return {
@@ -288,8 +288,8 @@ test('posting adds model attribution in selected-model order', () => {
 
 function pullRequestDependencies(patch, overrides = {}) {
   return {
-    getDiff() {
-      return patch;
+    getVerifiedInput() {
+      return { patch, contextChanges: [] };
     },
     getPullRequest() {
       return {
@@ -422,8 +422,8 @@ test('reports each posted URL before a later posting failure', () => {
               html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
             };
           },
-          getDiff() {
-            return patch;
+          getVerifiedInput() {
+            return { patch, contextChanges: [] };
           },
           getPullRequest() {
             return {

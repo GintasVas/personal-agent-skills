@@ -36,29 +36,24 @@ if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then
 fi
 
 if [[ "${1:-}" == "pr" && "${2:-}" == "diff" ]]; then
-  cat <<'PATCH'
-diff --git a/src/example.ts b/src/example.ts
-index 1111111..2222222 100644
---- a/src/example.ts
-+++ b/src/example.ts
-@@ -1,3 +1,3 @@
- export const before = true;
---- removed marker
-++++ added marker
- export const unchanged = true;
-diff --git a/docs/example.md b/docs/example.md
-index 3333333..4444444 100644
---- a/docs/example.md
-+++ b/docs/example.md
-@@ -1 +1 @@
--before
-+after
-PATCH
+  echo 'remote PR diff unavailable' >&2
+  exit 1
+fi
+
+if [[ "${1:-}" == "api" && "${2:-}" == "--paginate" ]]; then
+  if [[ -f "${POSTED_COMMENT}" && "${3:-}" == repos/*/pulls/*/comments ]]; then
+    jq -c '{body, html_url:"https://github.com/example-org/example/pull/42#discussion_r1"}' "${POSTED_COMMENT}"
+  fi
   exit 0
 fi
 
 if [[ "${1:-}" == "api" ]]; then
-  cat > "${POSTED_COMMENT}"
+  payload="$(cat)"
+  if [[ -n "${FAKE_FAIL_POST_PATH:-}" && "$(jq -r .path <<< "$payload")" == "$FAKE_FAIL_POST_PATH" ]]; then
+    echo 'injected posting failure' >&2
+    exit 1
+  fi
+  printf '%s\n' "$payload" > "${POSTED_COMMENT}"
   printf '%s\n' '{"html_url":"https://github.com/example-org/example/pull/42#discussion_r1"}'
   exit 0
 fi
@@ -78,13 +73,23 @@ arguments=("$@")
 if [[ "${arguments[0]:-}" == "-C" ]]; then
   arguments=("${arguments[@]:2}")
 fi
+if [[ "${arguments[0]:-}" == "-c" ]]; then
+  arguments=("${arguments[@]:2}")
+fi
 
 if [[ "${arguments[0]:-}" == "fetch" ]]; then
   exit 0
 fi
 
 if [[ "${arguments[0]:-}" == "diff" && " ${arguments[*]} " == *" --name-only "* ]]; then
-  printf '%b' "${FAKE_CONTEXT_CHANGES:-}"
+  if [[ " ${arguments[*]} " == *"..."* ]]; then
+    printf '%s\0' src/example.ts docs/example.md
+    for ((index=1; index<=${FAKE_EXTRA_FILES:-0}; index++)); do
+      printf 'extra/file-%d.md\0' "$index"
+    done
+  else
+    printf '%b' "${FAKE_CONTEXT_CHANGES:-}" | tr '\n' '\0'
+  fi
   exit 0
 fi
 
@@ -108,6 +113,10 @@ index 3333333..4444444 100644
 -before
 +after
 PATCH
+  for ((index=1; index<=${FAKE_EXTRA_FILES:-0}; index++)); do
+    path="extra/file-$index.md"
+    printf 'diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n@@ -1 +1 @@\n-before\n+after\n' "$path" "$path" "$path" "$path"
+  done
   exit 0
 fi
 
@@ -250,6 +259,8 @@ write_pull_request base0123456789
 FAKE_PATCH_PREFIX='diff --git a/src/new.ts b/src/new.ts\n' \
   expect_failure 'no longer matches the pinned review input' \
   node "$PREPARE" verify 42 "${REVIEW_DIRECTORY}/manifest.json"
+FAKE_PATCH_PREFIX='diff --git a/src/new.ts b/src/new.ts\n' \
+  expect_failure 'parsed patch file list does not match' node "$PREPARE" prepare 42
 
 write_pull_request base0123456789 fedcba9876543210
 FAKE_HEAD_OID=fedcba9876543210 \
@@ -335,7 +346,7 @@ cat > "${TMP}/comments.json" <<'JSON'
 }
 JSON
 
-node "$POST" 42 0123456789abcdef - < "${TMP}/comments.json" \
+node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" - < "${TMP}/comments.json" \
   > "${TMP}/post.out"
 grep -Fq '#discussion_r1' "${TMP}/post.out"
 grep -Fq 'Found by: `claude-opus-5-5-high`, `grok-4.7-high`' "${POSTED_COMMENT}"
@@ -364,13 +375,51 @@ cat > "${TMP}/legacy-comments.json" <<'JSON'
 }
 JSON
 expect_failure 'must start with bold severity and confidence' \
-  node "$POST" 42 0123456789abcdef "${TMP}/legacy-comments.json"
-expect_failure 'Do not post stale findings' node "$POST" 42 changed-sha "${TMP}/comments.json"
+  node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/legacy-comments.json"
+expect_failure 'Do not post stale findings' node "$POST" 42 changed-sha "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/comments.json"
+
+node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/comments.json" \
+  > "${TMP}/retry.out"
+grep -Fq 'alreadyPosted=https://github.com/example-org/example/pull/42#discussion_r1' "${TMP}/retry.out"
+jq '.comments[0].body += " First partial finding." |
+  .comments += [.comments[0] + {path:"docs/example.md",line:1,anchor:"after"}]' \
+  "${TMP}/comments.json" > "${TMP}/partial-comments.json"
+FAKE_FAIL_POST_PATH=docs/example.md expect_failure 'injected posting failure' \
+  node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/partial-comments.json"
+grep -Fq '"path":"src/example.ts"' "${POSTED_COMMENT}"
+node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/partial-comments.json" \
+  > "${TMP}/partial-retry.out"
+grep -Fq 'alreadyPosted=https://github.com/example-org/example/pull/42#discussion_r1' "${TMP}/partial-retry.out"
+grep -Fq '"path":"docs/example.md"' "${POSTED_COMMENT}"
+FAKE_PATCH_PREFIX='diff --git a/src/new.ts b/src/new.ts\n' \
+  expect_failure 'no longer matches the pinned review input' \
+  node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/comments.json"
+
+write_pull_request base0123456789 fedcba9876543210
+jq '.comments[0].evidencePaths = ["docs/context.md"]' "${TMP}/comments.json" > "${TMP}/context-comment.json"
+FAKE_HEAD_OID=fedcba9876543210 FAKE_CONTEXT_CHANGES='docs/context.md\n' \
+  expect_failure 'Review context changed' \
+  node "$POST" 42 fedcba9876543210 "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/context-comment.json"
+write_pull_request base0123456789
+
+FAKE_EXTRA_FILES=310 node "$PREPARE" prepare 42 > "${TMP}/large-prepare.out"
+grep -Fxq 'files=312' "${TMP}/large-prepare.out"
+LARGE_DIRECTORY="$(awk -F= '/^directory=/{ print $2 }' "${TMP}/large-prepare.out")"
+jq '.comments[0] += {path:"extra/file-310.md",line:1,anchor:"after"}' "${TMP}/comments.json" > "${TMP}/large-comment.json"
+FAKE_EXTRA_FILES=310 node "$POST" 42 0123456789abcdef "${LARGE_DIRECTORY}/manifest.json" "${TMP}/large-comment.json" \
+  > "${TMP}/large-post.out"
+grep -Fq '"path":"extra/file-310.md"' "${POSTED_COMMENT}"
+node "$CLEANUP" "${LARGE_DIRECTORY}" >/dev/null
+if grep -Fq 'pr diff' "$GH_CALLS"; then
+  echo "posting must use the pinned Git diff" >&2
+  exit 1
+fi
 
 node "$CLEANUP" "${REVIEW_DIRECTORY}" > "${TMP}/cleanup.out"
 grep -Fq "cleaned=${REVIEW_DIRECTORY}" "${TMP}/cleanup.out"
 test ! -e "${REVIEW_DIRECTORY}"
 grep -Fq "worktree remove --force ${REVIEW_DIRECTORY}/source" "${GIT_CALLS}"
+grep -Fq -- '-c core.hooksPath=/dev/null worktree add --detach' "${GIT_CALLS}"
 grep -Fq "update-ref -d refs/agent-review-input/$(basename "${REVIEW_DIRECTORY}")/head" "${GIT_CALLS}"
 node "$CLEANUP" "${REVIEW_DIRECTORY}" > "${TMP}/repeat-cleanup.out"
 grep -Fq "cleaned=${REVIEW_DIRECTORY}" "${TMP}/repeat-cleanup.out"

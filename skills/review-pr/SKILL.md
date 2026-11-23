@@ -72,6 +72,15 @@ Verify bundles before launch. Give all verified bundles to every model.
 Each model reviews them in order. Use the generated `review-index.json` and
 per-bundle anchors. The parent does not read the global line map.
 
+## Review changed requirements
+
+Before launch, identify changed requirement specs from the manifest and repo
+conventions. Include OpenSpec deltas and other product or API requirement
+documents. Skip test files. When the PR changes specs, pass their paths and
+any available originating issue or spec to each reviewer. Require the
+requirements pass in the worker prompt, even when the PR changes only specs.
+Use the old side of the pinned patch for removed requirements.
+
 ## Run reviewers
 
 Classify the changes as UI, service and API, data model, infrastructure and
@@ -114,7 +123,8 @@ node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW
 Verify before presentation. If verification fails, warn that the patch changed
 and the findings are stale. Do not post. If the head moved and the patch stayed
 the same, verification returns a new `headRefOid` and `contextChangesPath`.
-Mark findings stale when they rely on traced code in that list.
+Mark findings stale if their `evidencePaths` intersect that list. If the list
+has entries and evidence paths are missing, recheck the finding.
 Use the verified `headRefOid` to post.
 
 Name the exact models that ran. Synthesize without discovering new findings.
@@ -127,7 +137,9 @@ correction, and support from a repo standard or established pattern.
 Otherwise, offer a design alternative only if it names the constraint,
 alternative, cost, and rejected simpler variant.
 
-Number postable findings in P0 to P2 order. List alternatives separately.
+Report requirements findings separately. State when the evidence cannot
+establish conformance. Keep one numbered list across both groups.
+Order findings P0 to P2 within each group. List alternatives separately.
 Never post design alternatives. Ask:
 `Reply "post all", "post 1,3", or "post none".`
 
@@ -136,7 +148,7 @@ Never post design alternatives. Ask:
 Post only if this turn asks to.
 
 ```bash
-node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" -
+node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" "$REVIEW_DIR/manifest.json" -
 ```
 
 Pass the selected models and approved inline findings as one JSON object on
@@ -148,6 +160,7 @@ standard input.
   "comments": [{
     "body": "<canonical finding body>",
     "modelSlugs": ["<exact slug>"],
+    "evidencePaths": ["<repo-relative evidence path>"],
     "path": "<path>",
     "line": 1,
     "side": "RIGHT",
@@ -159,8 +172,10 @@ standard input.
 List only the jobs that reported each finding in `modelSlugs`. Omit
 the `Found by` footer from `body`. The script verifies model metadata
 and adds the footer in `selectedModels` order.
-The script verifies and posts the full batch. It prints one URL per inline
-comment.
+Keep each finding's evidence paths. The script rechecks the pinned input
+before posting. It verifies and posts the full batch. It prints one URL per
+comment. Keep the same approved payload on retry. The script skips comments
+it already posted and prints their URLs as `alreadyPosted=<url>`.
 
 `post all` includes approved `Unrelated discovered issue` findings.
 `post 1,3` selects from the same list for inline and unrelated findings.

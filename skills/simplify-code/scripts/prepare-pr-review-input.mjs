@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 
 import {
   bundleSkeleton,
-  compareWithCurrentPullRequest,
+  assertPatchCoverage,
   createReviewPatch,
   createReviewSource,
   createReviewInputDirectory,
@@ -22,6 +22,7 @@ import {
   sha256,
   pullRequestComparison,
   samePullRequestComparison,
+  verifiedReviewInput,
   writeJsonFile
 } from './lib/review-automation.mjs';
 
@@ -71,6 +72,8 @@ function prepare(reference, outputDirectory) {
 
     patchDigest = sha256(patch);
     files = parsePatch(patch);
+    const paths = createReviewPatch(repositoryRoot, source, { namesOnly: true }).split('\0').filter(Boolean);
+    assertPatchCoverage(files, paths);
     additions = files.reduce((total, file) => total + file.additions, 0);
     deletions = files.reduce((total, file) => total + file.deletions, 0);
     reviewableHunks = files
@@ -130,23 +133,14 @@ function verify(reference, manifestPath) {
   const staleFix =
     'Do not post or present the findings as current. Rerun prepare and review the new base-to-head patch.';
 
-  if (
-    current.baseRefName !== manifest.comparison.base.name ||
-    current.headRefName !== manifest.comparison.head.name
-  ) {
-    fail(`PR #${current.number} no longer matches the pinned review input.`, staleFix);
-  }
-
   const repositoryRoot = run('git', ['rev-parse', '--show-toplevel']).trim();
-  const { baseRefOid, contextChanges, patchDigest } = compareWithCurrentPullRequest(
-    repositoryRoot,
-    manifest,
-    current
-  );
-
-  if (patchDigest !== manifest.patchDigest) {
-    fail(`PR #${current.number} no longer matches the pinned review input.`, staleFix);
+  let verified;
+  try {
+    verified = verifiedReviewInput(repositoryRoot, manifest, current);
+  } catch (error) {
+    fail(error.message, staleFix);
   }
+  const { baseRefOid, contextChanges } = verified;
 
   console.log(`verified=${manifestPath}`);
   console.log(`baseRefOid=${baseRefOid}`);

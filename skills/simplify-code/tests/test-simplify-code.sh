@@ -140,6 +140,8 @@ mkdir -p "${LOCAL_REPO}/src/nested"
   git config user.name Test
   printf 'export const one = true;\nexport const two = true;\nexport const three = true;\nexport const first = true;\nexport const five = true;\nexport const six = true;\nexport const seven = true;\n' > src/first.ts
   printf 'export const second = true;\n' > src/nested/second.ts
+  printf 'before\n' > 'src/café.md'
+  printf 'original file\n' > src/kind
   git add src
   git commit --quiet -m initial
 
@@ -152,8 +154,17 @@ mkdir -p "${LOCAL_REPO}/src/nested"
   git config diff.indentHeuristic true
   printf 'export const one = true;\nexport const two = true;\nexport const three = true;\nexport const first = false;\nexport const five = true;\nexport const six = true;\nexport const seven = true;\n' > src/first.ts
   printf 'export const third = true;\n' > src/third.ts
+  printf 'after\n' > 'src/café.md'
+  printf 'new file\n' > 'src/review notes.md'
+  unlink src/kind
+  ln -s first.ts src/kind
   node "$LOCAL_PREPARE" changes > "${TMP}/changes.out"
+  node "$LOCAL_PREPARE" changes > "${TMP}/repeat-changes.out"
 )
+
+grep '^patchDigest=' "${TMP}/changes.out" > "${TMP}/changes.digest"
+grep '^patchDigest=' "${TMP}/repeat-changes.out" > "${TMP}/repeat-changes.digest"
+cmp "${TMP}/changes.digest" "${TMP}/repeat-changes.digest"
 
 FILE_MANIFEST="$(awk -F= '/^manifest=/{ print $2 }' "${TMP}/file-path.out")"
 FILE_DIRECTORY="$(awk -F= '/^directory=/{ print $2 }' "${TMP}/file-path.out")"
@@ -170,7 +181,7 @@ grep -Fq '"path": "src/nested/second.ts"' "$DIRECTORY_MANIFEST"
 node "$BUILD" "$FILE_MANIFEST" "$FILE_BUNDLES" > "${TMP}/path-build.out"
 FILE_MATERIALIZED="${FILE_DIRECTORY}/materialized-review-bundles.json"
 node "$VERIFY" "$FILE_MANIFEST" "$FILE_MATERIALIZED" > "${TMP}/path-verify.out"
-grep -Fq 'diff --git a/src/first.ts b/src/first.ts' "${FILE_DIRECTORY}/bundles/01-src.diff"
+grep -Fq '+++ "b/src/first.ts"' "${FILE_DIRECTORY}/bundles/01-src.diff"
 grep -Fq 'export const one = true;' "${FILE_DIRECTORY}/bundles/01-src.diff"
 
 CHANGES_PATCH="$(awk -F= '/^patch=/{ print $2 }' "${TMP}/changes.out")"
@@ -182,6 +193,16 @@ grep -Fq '@@ -1,7 +1,7 @@' "$CHANGES_PATCH"
 grep -Fq '"path": "src/first.ts"' "$CHANGES_MANIFEST"
 grep -Fq '"path": "src/third.ts"' "$CHANGES_MANIFEST"
 grep -Fq '"id": "src/first.ts#1"' "$CHANGES_MANIFEST"
+jq -e '([.files[] | select(.path == "src/café.md") | .hunks | length] == [1]) and
+  ([.files[] | select(.path == "src/review notes.md") | .hunks | length] == [1]) and
+  ([.files[] | select(.path == "src/kind") | .hunks[].id] == ["src/kind#1","src/kind#2"])' \
+  "$CHANGES_MANIFEST" > /dev/null
+node "$BUILD" "$CHANGES_MANIFEST" "${CHANGES_DIRECTORY}/review-bundles.json" > /dev/null
+node "$VERIFY" "$CHANGES_MANIFEST" "${CHANGES_DIRECTORY}/materialized-review-bundles.json" > /dev/null
+if grep -Fq '"path": ".tmp/review-' "$CHANGES_MANIFEST"; then
+  echo "local review picked up its own artifacts" >&2
+  exit 1
+fi
 node "$CLEANUP" "$CHANGES_DIRECTORY" > "${TMP}/cleanup.out"
 grep -Fq "cleaned=${CHANGES_DIRECTORY}" "${TMP}/cleanup.out"
 test ! -e "$CHANGES_DIRECTORY"

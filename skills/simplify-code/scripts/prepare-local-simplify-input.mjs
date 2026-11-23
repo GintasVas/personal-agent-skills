@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import {
+  assertPatchCoverage,
   bundleSkeleton,
   classifyPath,
   createReviewInputDirectory,
@@ -44,16 +45,16 @@ function digest(entries) {
 }
 
 function pathspec(paths) {
-  return paths.length > 0 ? ['--', ...paths] : [];
+  return ['--', ...paths.map((path) => `:(literal)${path}`), ':(top,exclude,glob).tmp/review-*/**'];
 }
 
 function pathsFrom(output) {
-  return output.split('\n').filter(Boolean);
+  return output.split('\0').filter(Boolean);
 }
 
 function listFiles(root, modes, paths) {
   return pathsFrom(
-    runGit(['-C', root, 'ls-files', ...modes, '--exclude-standard', ...pathspec(paths)])
+    runGit(['-C', root, 'ls-files', '-z', ...modes, '--exclude-standard', ...pathspec(paths)])
   );
 }
 
@@ -69,10 +70,14 @@ function changesPatch(root, paths) {
   const diffArguments = [
     '-C',
     root,
+    '-c',
+    'core.quotePath=true',
     'diff',
     '--no-ext-diff',
     '--no-color',
     '--no-textconv',
+    '--no-relative',
+    '--find-renames',
     '--no-indent-heuristic',
     '--diff-algorithm=myers',
     '--unified=3',
@@ -81,23 +86,25 @@ function changesPatch(root, paths) {
     '--binary'
   ];
   const trackedPatch = runGit([...diffArguments, 'HEAD', ...pathspec(paths)]);
-  const untrackedPatch = untrackedPaths(root, paths)
+  const trackedPaths = pathsFrom(runGit([
+    '-C', root, 'diff', '--find-renames', '--no-relative', '--name-only', '-z', 'HEAD', ...pathspec(paths)
+  ]));
+  const untracked = untrackedPaths(root, paths);
+  const untrackedPatch = untracked
     .map((path) => runGit([...diffArguments, '--no-index', '--', '/dev/null', path], [0, 1]))
     .join('');
 
-  return `${trackedPatch}${untrackedPatch}`;
+  return { patch: `${trackedPatch}${untrackedPatch}`, expectedPaths: [...trackedPaths, ...untracked] };
 }
 
 function prepareChanges(root, outputDirectory, paths) {
-  const patch = changesPatch(root, paths);
+  const { patch, expectedPaths } = changesPatch(root, paths);
   const patchPath = join(outputDirectory, 'patch.diff');
   const patchDigest = sha256(patch);
   const manifestPath = join(outputDirectory, 'manifest.json');
   const files = parsePatch(patch);
 
-  if (patch && files.length === 0) {
-    throw new Error('could not parse any changed files from the generated patch');
-  }
+  assertPatchCoverage(files, expectedPaths);
 
   const manifest = {
     schemaVersion: 1,
