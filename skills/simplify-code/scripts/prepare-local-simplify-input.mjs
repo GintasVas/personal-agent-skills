@@ -67,7 +67,7 @@ function scopedPaths(root, paths) {
 }
 
 function changesPatch(root, paths) {
-  const diffArguments = [
+  const diff = [
     '-C',
     root,
     '-c',
@@ -77,7 +77,10 @@ function changesPatch(root, paths) {
     '--no-color',
     '--no-textconv',
     '--no-relative',
-    '--find-renames',
+    '--find-renames'
+  ];
+  const diffArguments = [
+    ...diff,
     '--no-indent-heuristic',
     '--diff-algorithm=myers',
     '--unified=3',
@@ -85,10 +88,9 @@ function changesPatch(root, paths) {
     '--dst-prefix=b/',
     '--binary'
   ];
-  const trackedPatch = runGit([...diffArguments, 'HEAD', ...pathspec(paths)]);
-  const trackedPaths = pathsFrom(runGit([
-    '-C', root, 'diff', '--find-renames', '--no-relative', '--name-only', '-z', 'HEAD', ...pathspec(paths)
-  ]));
+  const scope = ['HEAD', ...pathspec(paths)];
+  const trackedPatch = runGit([...diffArguments, ...scope]);
+  const trackedPaths = pathsFrom(runGit([...diff, '--name-only', '-z', ...scope]));
   const untracked = untrackedPaths(root, paths);
   const untrackedPatch = untracked
     .map((path) => runGit([...diffArguments, '--no-index', '--', '/dev/null', path], [0, 1]))

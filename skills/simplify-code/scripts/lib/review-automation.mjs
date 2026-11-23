@@ -624,6 +624,7 @@ function diffPath(lines, index) {
 export function walkUnifiedDiff(patch, visitor) {
   let path;
   let inHunk = false;
+  const hunkCounts = new Map();
 
   const lines = patch.split('\n');
   for (const [index, line] of lines.entries()) {
@@ -642,8 +643,11 @@ export function walkUnifiedDiff(patch, visitor) {
 
     if (hunk) {
       inHunk = true;
+      const count = (hunkCounts.get(path) ?? 0) + 1;
+      hunkCounts.set(path, count);
       visitor.onHunk?.(
         {
+          id: `${path}#${count}`,
           oldStart: Number(hunk[1]),
           oldLines: Number(hunk[2] ?? 1),
           newStart: Number(hunk[3]),
@@ -798,7 +802,6 @@ export function validateInlineComments(comments, lineMap) {
 
 export function parsePatch(patch) {
   const files = [];
-  const hunkCounts = new Map();
   let file;
 
   walkUnifiedDiff(patch, {
@@ -820,9 +823,7 @@ export function parsePatch(patch) {
       }
     },
     onHunk(hunk) {
-      const count = (hunkCounts.get(file.path) ?? 0) + 1;
-      hunkCounts.set(file.path, count);
-      file.hunks.push({ id: `${file.path}#${count}`, ...hunk });
+      file.hunks.push(hunk);
     },
     onHunkLine({ line }) {
       if (line.startsWith('+')) {

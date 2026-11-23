@@ -164,6 +164,10 @@ import { INLINE_COMMENT_HEADING, findingDigest } from '${SKILL_ROOT}/scripts/lib
 const [pr, local] = process.argv.slice(2).map((path) => JSON.parse(readFileSync(path, 'utf8')));
 const byRule = Object.fromEntries(pr.findings.map((finding) => [finding.ruleId, finding]));
 const fail = (message) => { console.error(message); process.exit(1); };
+const missingLink = local.findings.find((finding) => finding.ruleId === 'S010');
+if (!missingLink?.evidencePaths.includes('openspec/changes/bad-change/missing.md')) {
+  fail('broken links must carry the target as evidence for context verification');
+}
 if (byRule.S004?.line !== 9) fail('S004 must anchor on its requirement heading');
 if (byRule.S003?.line !== 2) fail('S003 must fall back to the first changed line');
 if (byRule.S001?.path !== 'openspec/changes/bad-change/specs/example/spec.md' || !byRule.S001.line) {
@@ -176,6 +180,7 @@ const severities = pr.findings.map((finding) => finding.severity);
 if (severities.join() !== [...severities].sort().join()) fail('findings must be ordered by severity');
 for (const finding of [...pr.findings, ...local.findings]) {
   if (finding.tool !== 'audit_structure.py' || finding.modelSlugs) fail('findings must name the validator');
+  if (!finding.evidencePaths?.includes(finding.path)) fail('findings must carry their evidence paths');
   if (!INLINE_COMMENT_HEADING.test(finding.body)) fail('finding body must pass the posting validator');
   if (finding.id !== 'SA-' + finding.ruleId + '-' + findingDigest(finding.findingKey)) {
     fail('report IDs and posting digests must agree');

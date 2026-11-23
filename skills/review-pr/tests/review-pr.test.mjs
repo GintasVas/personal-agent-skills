@@ -312,6 +312,7 @@ test('posting attributes script findings and marks general comments', () => {
         {
           anchor: 'none',
           body: '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.',
+          evidencePaths: ['openspec/changes/a/.openspec.yaml'],
           findingKey: 'S002:openspec/changes/a/.openspec.yaml:change configuration',
           path: 'openspec/changes/a/.openspec.yaml',
           tool: 'audit_structure.py'
@@ -322,6 +323,9 @@ test('posting attributes script findings and marks general comments', () => {
       selectedModels: SELECTED_MODELS
     },
     pullRequestDependencies(patch, {
+      getVerifiedInput() {
+        return { patch, contextChanges: ['docs/unrelated.md'] };
+      },
       createGeneralComment(_repository, _pullRequestNumber, payload) {
         posted.push(payload);
         return {

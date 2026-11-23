@@ -67,8 +67,8 @@ Question: ...
 Why it matters: ...
 ```
 
-For each finding or question, return rule ID, requirement name, and every
-authoritative path searched. For PRs, include `headRefOid`, path, file line,
+For each finding or question, return the rule ID and requirement name. Put every
+repo-relative authoritative path searched in `evidencePaths`. For PRs, include `headRefOid`, path, file line,
 LEFT or RIGHT side, and the full changed line as anchor. Copy the location
 from the bundle's `anchorsPath` or line map. Prefer the requirement or scenario
 heading. If no changed line fits, return path, requirement, and `anchor: none`.

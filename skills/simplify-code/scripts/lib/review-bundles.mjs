@@ -69,22 +69,19 @@ export function validateBundlePlan(manifest, bundleInput) {
 
 function patchHunks(patch) {
   const files = [];
-  const hunkCounts = new Map();
   let file;
   let hunk;
 
   walkUnifiedDiff(patch, {
-    onFile({ path }, line) {
-      file = { header: [line], hunks: [], path };
+    onFile(_, line) {
+      file = { header: [line], hunks: [] };
       files.push(file);
     },
     onFileLine({ line }) {
       file.header.push(line);
     },
-    onHunk(_, line) {
-      const count = (hunkCounts.get(file.path) ?? 0) + 1;
-      hunkCounts.set(file.path, count);
-      hunk = { id: `${file.path}#${count}`, lines: [line] };
+    onHunk({ id }, line) {
+      hunk = { id, lines: [line] };
       file.hunks.push(hunk);
     },
     onHunkLine({ line }) {

@@ -197,7 +197,9 @@ node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW
 Verify before presentation. If verification fails, warn that the patch changed
 and the findings are stale. Do not post. If the head moved and the patch stayed
 the same, verification returns a new `headRefOid` and `contextChangesPath`.
-Mark any finding or question whose searched sources appear in that list as stale.
+Mark any finding or question stale if its `evidencePaths` intersect that list.
+If the list has entries and evidence paths are missing, recheck the result.
+Repeat the structural audit on fresh input if context changes can affect the validator.
 Use the verified `headRefOid` to post.
 
 Name the exact models that ran. Synthesize without discovering new findings.
@@ -229,6 +231,7 @@ Pass one JSON object on standard input.
     "body": "<canonical finding body>",
     "modelSlugs": ["<exact slug>"],
     "findingKey": "<rule ID>:<path>:<requirement name>",
+    "evidencePaths": ["<repo-relative evidence path>"],
     "path": "<path>",
     "line": 1,
     "side": "RIGHT",
@@ -240,6 +243,8 @@ Pass one JSON object on standard input.
 Use only reporting reviewer jobs in `modelSlugs`. Build `findingKey` from
 the returned rule ID, path, and requirement. Copy approved structural entries
 unchanged. Their `tool` replaces `modelSlugs`. Omit the `Found by` footer.
+Keep `evidencePaths` for each approved entry. The posting script uses these
+paths to verify that the evidence is current.
 The script rejects invalid attribution. It adds the footer in model selection
 order and a hidden marker from `findingKey`.
 
