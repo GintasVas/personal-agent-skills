@@ -6,11 +6,9 @@ Use each lens to identify simplification candidates. Apply the
 ## Common
 
 - **Feature Envy.** Logic depends mainly on data another module owns.
-  Use `Decompose` when moving the rule to its owner removes coupling.
 - **Data Clumps.** The same fields travel together because they represent one
-  concept. Use `Extract` when a shared type makes that concept explicit.
+  concept.
 - **Message Chains.** A caller navigates another module's internal objects.
-  Use `Simplify` when a direct operation hides that structure.
 
 ## User interface
 

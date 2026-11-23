@@ -1,16 +1,14 @@
 # Review shaping lenses
 
-Each lens is a concrete symptom to investigate in a matching changed bundle.
-It is not a verdict. Apply the evidence requirements in `SKILL.md` before
-reporting a postable maintainability finding or a design alternative.
+Use each lens to identify a candidate. Apply the evidence requirements in
+`SKILL.md` before reporting.
 
 ## Common
 
 - **Primitive Obsession.** A changed path uses raw values and accepts an
-  invalid domain value. Report `Correctness` or `Data integrity` if it persists
-  invalid state.
+  invalid domain value.
 - **Shotgun Surgery.** A policy change updates one copy of a rule and leaves
-  another path on the old rule. Report `Correctness` and name both paths.
+  another path on the old rule.
 
 ## User interface
 
