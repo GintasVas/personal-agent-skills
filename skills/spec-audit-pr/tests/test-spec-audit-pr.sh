@@ -210,6 +210,10 @@ check "large PRs bundle non-OpenSpec hunks as context" \
   bash -c "grep -Fq 'one bundle named' '${ORCHESTRATOR}' && grep -Fq '\`context\` bundle, are conformance context.' '${WORKER}'"
 check "default scope audits what differs from the base branch" \
   has 'prepare-local-spec-input.mjs changed' "${ORCHESTRATOR}"
+check "local audits select one prepare command" \
+  has 'For a local audit, run one command.' "${ORCHESTRATOR}"
+check "PR preparation has its own scope" \
+  has 'For a PR, prepare the pinned input.' "${ORCHESTRATOR}"
 check "reviewer treats context main specs as authority only" \
   has '`contextFiles` are the main specs those targets build on' "${WORKER}"
 check "conformance runs only for main spec targets" \

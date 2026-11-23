@@ -410,7 +410,9 @@ for skill in "$SIMPLIFY" "$REVIEW"; do
 done
 
 grep -Fq 'approved inline findings' "$REVIEW"
-grep -Fq '`anchor`' "$REVIEW"
+grep -Fq '"anchor": "<full changed line>"' "$REVIEW"
+grep -Fq 'Return `headRefOid` with the results.' "$REVIEWER"
+grep -Fq 'source style, and missing lockfiles.' "$REVIEWER"
 grep -Fq '**[P1] - Correctness - confidence 92:**' "$REVIEWER"
 grep -Fq 'must be postable without changes' "$REVIEWER"
 grep -Fq 'Keep source line numbers out of bodies.' "$REVIEWER"

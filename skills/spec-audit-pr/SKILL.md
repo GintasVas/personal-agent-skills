@@ -62,6 +62,9 @@ that contradiction under Q015 or T003.
 Run the bundled scripts at the steps below. Replace `<this-skill-dir>`
 with the absolute path to this skill directory. Do not inspect script source.
 
+For a local audit, run one command. Use `changed` with no scope. Use
+`all`, `change <slug>`, or `domain <name>` for the matching scope.
+
 ```bash
 node <this-skill-dir>/scripts/prepare-local-spec-input.mjs changed
 node <this-skill-dir>/scripts/prepare-local-spec-input.mjs all
@@ -78,6 +81,8 @@ For local audits, set `REVIEW_DIR` from `directory` and `code_root` from
 `contextFiles` as authority. Keep `inputDigest`, which covers both.
 After the audit, repeat the command and remove its second directory.
 Warn of possible staleness if the digests differ.
+
+For a PR, prepare the pinned input.
 
 ```bash
 node <this-skill-dir>/scripts/prepare-pr-review-input.mjs prepare "<PR>"

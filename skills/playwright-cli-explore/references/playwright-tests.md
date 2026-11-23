@@ -1,8 +1,7 @@
 # Running and debugging Playwright tests
 
-The repository's Nx target or test script owns final execution and evidence.
-Discover the target through the `nx-run-tasks` guidance; do not replace it with
-an ad hoc CLI command.
+Use the repository's documented Playwright test command for final tests and
+evidence. Do not use an ad hoc command.
 
 For an interactive diagnosis, start the repository test command with the
 official Playwright `--debug=cli` option only when that target supports

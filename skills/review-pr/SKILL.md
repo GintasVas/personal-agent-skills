@@ -105,12 +105,6 @@ Do not attribute findings to that model or present the review as complete.
 
 For bundled PRs, pass `review-index.json` and `source`. For small PRs, pass
 `patch.diff`, `line-map.json`, `manifest.json`, and `source`. Pass paths only.
-Use the reviewer contract for bounded inspection and output. Skip issues CI
-catches, style outside repository standards, and missing lockfiles. Return
-`headRefOid` with the comments. Each finding needs severity, bug kind,
-confidence >= 75, exact `path`, `line`, `side`, and `anchor`. Keep source line
-numbers out of bodies. Use `**[P1] - Correctness - confidence 92:**`, a blank
-line, then the comment. Reviewers never post.
 
 ## Verify and report
 

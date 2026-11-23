@@ -42,13 +42,18 @@ files or directories select paths. Reject invalid scopes and a mix of PR and pat
 Run the bundled scripts at the steps below. Replace `<this-skill-dir>`
 with the absolute path to this skill directory. Do not inspect script source.
 
+For local review, run one command. Use `changes` with no scope or `paths` for
+selected files and directories.
+
 ```bash
 node <this-skill-dir>/scripts/prepare-local-simplify-input.mjs changes
 node <this-skill-dir>/scripts/prepare-local-simplify-input.mjs paths <path>...
 ```
 
 Use the reported directory as `REVIEW_DIR`. Retain the digest. After local
-review, repeat the command and compare digests. Warn if they differ.
+review, repeat the local command and compare digests. Warn if they differ.
+
+For a PR, prepare the pinned input.
 
 ```bash
 node <this-skill-dir>/scripts/prepare-pr-review-input.mjs prepare "<PR>"
@@ -87,14 +92,9 @@ per-bundle anchors. The parent does not read the global line map.
 
 ## Run simplifiers
 
-The parent does not review. Classify the changes as UI, service and API, data model, infrastructure and
-pipelines, or shared library. Copy only the matching sections of
-[simplification-lenses.md](simplification-lenses.md) into each worker prompt. Use lenses to identify
-candidates.
-Require a preserved constraint, concrete gain, and behavior-preserving
-refactor. For `Inject`, require a likely variation and evidence from changed
-code, requirements, or a local analogue. A second caller or planned feature
-is optional. Speculation alone is insufficient.
+The parent does not review. Classify the changes as UI, service and API,
+data model, infrastructure and pipelines, or shared library. Copy only the
+matching [lenses](simplification-lenses.md) into each worker prompt.
 
 Keep one private job per selected model, in selection order:
 
@@ -121,16 +121,19 @@ Do not attribute findings to that model or present the review as complete.
 For bundled PRs, pass `review-index.json` and `source`. For small PRs, pass
 `patch.diff`, `line-map.json`, `manifest.json`, and `source`. Pass paths only.
 Use `source` as `code_root` for PRs. Otherwise use the caller repo root.
-For changes, pass the patch and digest. For paths, pass the whole-file manifest
-and digest. Disclose if the parent executes the reviewer prompt directly.
+For bundled local reviews, pass the index and local digest. Otherwise pass
+the patch and digest for changes, or the whole-file manifest and digest
+for paths. Disclose if the parent executes the reviewer prompt directly.
 
 ## Verify, present, and post
+
+For a PR, verify the pinned input before presenting.
 
 ```bash
 node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW_DIR/manifest.json"
 ```
 
-Verify before presentation. If verification fails, warn that the patch changed
+If verification fails, warn that the patch changed
 and the findings are stale. Do not post. If the head moved and the patch stayed
 the same, verification returns a new `headRefOid` and `contextChangesPath`.
 Mark findings stale when their preserved constraint depends on a listed file.
@@ -144,7 +147,7 @@ Number postable findings in P0 to P2 order. Exclude general review findings.
 For a PR, end the turn with the report and ask:
 `Reply "post all", "post 1,3", or "post none".`
 
-Post only after explicit approval.
+For local reviews, keep findings in chat. For a PR, post only after explicit approval.
 
 ```bash
 node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" -
