@@ -93,8 +93,8 @@ per-bundle anchors. The parent does not read the global line map.
 ## Run simplifiers
 
 The parent does not review. Classify the changes as UI, service and API,
-data model, infrastructure and pipelines, or shared library. Copy only the
-matching [lenses](simplification-lenses.md) into each worker prompt.
+data model, infrastructure and pipelines, or shared library. Copy Common and
+only the matching [lenses](simplification-lenses.md) into each worker prompt.
 
 Keep one private job per selected model, in selection order:
 

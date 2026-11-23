@@ -75,10 +75,9 @@ per-bundle anchors. The parent does not read the global line map.
 ## Run reviewers
 
 Classify the changes as UI, service and API, data model, infrastructure and
-pipelines, or shared library. Copy only the matching sections of
-[shaping-lenses.md](shaping-lenses.md) into each worker prompt. Use lenses to identify
-candidates. Repository standards and established patterns
-take precedence.
+pipelines, or shared library. Copy Common and only the matching sections of
+[shaping-lenses.md](shaping-lenses.md) into each worker prompt. Use lenses to
+identify candidates. Repository standards and established patterns take precedence.
 
 Keep one private job per selected model, in selection order:
 

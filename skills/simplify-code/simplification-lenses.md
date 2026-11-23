@@ -1,8 +1,16 @@
 # Simplification lenses
 
-Each lens identifies a concrete simplification candidate in a matching changed
-bundle. It is not a requirement to extract or inject a new abstraction. Apply
-the constraint, gain, and behavior-preservation requirements in `SKILL.md`.
+Use each lens to identify simplification candidates. Apply the
+[worker's evidence rules](agents/code-simplifier.md#review) before reporting.
+
+## Common
+
+- **Feature Envy.** Logic depends mainly on data another module owns.
+  Use `Decompose` when moving the rule to its owner removes coupling.
+- **Data Clumps.** The same fields travel together because they represent one
+  concept. Use `Extract` when a shared type makes that concept explicit.
+- **Message Chains.** A caller navigates another module's internal objects.
+  Use `Simplify` when a direct operation hides that structure.
 
 ## User interface
 
