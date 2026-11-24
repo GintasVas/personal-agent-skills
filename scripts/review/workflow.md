@@ -62,8 +62,10 @@ anchors. The parent does not read the global line map.
 
 ## Run reviewers
 
-Use the scope and repo routing once to select required standards. If any apply,
-write their repo-relative paths as a JSON array in `REVIEW_DIR/required-standards.json`.
+For each bundle, follow the pinned root and path-scoped routing through all
+triggers matched by the changes. In `REVIEW_DIR/required-standards.json`, map
+each bundle name to its repo-relative routing and standards paths. Use
+`"scope"` for an unbundled review and `[]` after checking a scope with no matches.
 Append a context file path only for settings or writing rules the worker lacks.
 Pass untrusted text by path.
 

@@ -225,6 +225,15 @@ test('renders canonical prompts and validates individual candidate approvals', (
       stdio: ['ignore', 'pipe', 'pipe']
     });
   const worker = fileURLToPath(new URL('../agents/code-reviewer.md', import.meta.url));
+  writeFileSync(join(directory, 'review-index.json'), JSON.stringify({
+    bundles: [{ name: 'docs' }, { name: 'code' }]
+  }));
+  writeFileSync(standardsPath, JSON.stringify({ docs: [standard] }));
+  assert.throws(
+    () => runScript('render-reviewer-prompt', directory, '1', model, worker),
+    /one decision per review scope.*code/
+  );
+  writeFileSync(standardsPath, JSON.stringify({ docs: [standard], code: [] }));
   const promptPath = runScript('render-reviewer-prompt', directory, '1', model, worker, contextPath).trim();
   const prompt = readFileSync(promptPath, 'utf8');
   assert.ok(prompt.includes(readFileSync(worker, 'utf8')));
