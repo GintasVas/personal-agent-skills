@@ -13,9 +13,10 @@ and final evidence.
 
 Use the bundled launcher with Node.js 20 or later. It tries `npx`, then
 `pnpm`, then `bunx`. Set `PWCLI` to the launcher's absolute path.
-Use `sh "$PWCLI" --skill-url` to get Microsoft's skill for the pinned release.
-Read only the sections you need. Run its examples through this launcher and
-apply the rules below.
+Read the sections you need in the
+[bundled Microsoft guide](references/microsoft-playwright-cli/guide.md).
+Replace `playwright-cli` in its examples with `sh "$PWCLI"`. Apply the local rules below.
+Use `sh "$PWCLI" --skill-url` to check the source release when updating the bundle.
 
 Set `task` to a unique session name and `url` to the target URL.
 
