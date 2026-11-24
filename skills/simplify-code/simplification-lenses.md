@@ -9,6 +9,10 @@ Use each lens to identify simplification candidates. Apply the
 - **Data Clumps.** The same fields travel together because they represent one
   concept.
 - **Message Chains.** A caller navigates another module's internal objects.
+- **Behavioral Substitution.** Check that an extraction or replacement keeps
+  each implementation interchangeable under the same contract.
+- **Dependency Direction.** Domain policy can use a narrow input or port to
+  remove a direct framework or infrastructure dependency.
 
 ## User interface
 

@@ -9,6 +9,10 @@ Use each lens to identify a candidate. Apply the
   invalid domain value.
 - **Shotgun Surgery.** A policy change updates one copy of a rule and leaves
   another path on the old rule.
+- **Behavioral Substitution.** A changed implementation breaks a contract
+  callers rely on, such as error behavior or idempotency.
+- **Dependency Direction.** A framework or infrastructure change forces edits
+  to domain policy that depends on it directly.
 
 ## User interface
 
