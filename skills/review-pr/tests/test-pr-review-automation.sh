@@ -485,7 +485,8 @@ done
 
 for text in '<this-skill-dir>/agents/code-reviewer.md' '[shaping-lenses.md](shaping-lenses.md), including Common.' \
   'including for spec-only PRs.' 'when location and mechanism match.' \
-  'Exclude design alternatives and description notes.' '/skill:review-pr'; do
+  '`post all` includes design alternatives.' '`post alternatives` and `post 1,3 and alternatives`' \
+  'gh pr comment "<PR URL>" --body-file "$REVIEW_DIR/design-alternatives.md"' '/skill:review-pr'; do
   grep -Fq "$text" "$REVIEW"
 done
 

@@ -68,10 +68,11 @@ node <this-skill-dir>/scripts/render-reviewer-prompt.mjs \
   "$REVIEW_DIR" 1 "<exact slug>" "<worker.md>" "<context.md>"
 ```
 
-Render before launch. For each model, record its numbered prompt, final result,
-and runner or subagent ID. Launch the rendered prompt verbatim with the exact
-model and code root. Launch concurrently where supported. Save the full
-final result before verification:
+Build each prompt before launch.
+For each model, record its numbered prompt, final result, and runner or
+subagent ID. Send the prompt verbatim to the exact model in the code root.
+Launch concurrently where supported. Save the full final result before
+verification:
 
 ```bash
 node <this-skill-dir>/scripts/review-results.mjs verify \

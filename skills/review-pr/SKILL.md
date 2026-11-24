@@ -29,7 +29,8 @@ importers needed to understand a new shared module. Follow
 
 ## Run reviewers
 
-Render `<this-skill-dir>/agents/code-reviewer.md`. The renderer includes all of
+Pass `<this-skill-dir>/agents/code-reviewer.md` as `<worker.md>` in the
+shared prompt command. The script adds all of
 [shaping-lenses.md](shaping-lenses.md), including Common.
 
 Identify changed specs from the manifest and repo conventions. Skip test
@@ -53,8 +54,20 @@ List design alternatives separately.
 ## Post approved findings
 
 If approval is pending, ask `Reply "post all", "post 1,3", or "post none".`
-Exclude design alternatives and description notes. Follow
-[Post approved findings](workflow.md#post-approved-findings).
+`post all` includes design alternatives. When they exist, also offer
+`post alternatives` and `post 1,3 and alternatives`. Keep description notes in
+chat.
+
+If any numbered findings are approved, follow
+[Post approved findings](workflow.md#post-approved-findings). For approved
+alternatives, repeat [PR verification](workflow.md#verify-and-report).
+Write them under `## Design alternatives` and post one conversation comment:
+
+```bash
+gh pr comment "<PR URL>" --body-file "$REVIEW_DIR/design-alternatives.md"
+```
+
+Report the comment URL. Check the PR conversation before retrying.
 
 ## Cleanup
 

@@ -84,7 +84,8 @@ worker prompts.
 
 ### Behavioral audit
 
-Render `<this-skill-dir>/agents/spec-reviewer.md` with the bundled
+Pass `<this-skill-dir>/agents/spec-reviewer.md` as `<worker.md>` in the
+shared prompt command. The script adds paths to the bundled
 [`REFERENCE.md`](REFERENCE.md), [`CHECKLIST.md`](CHECKLIST.md), and
 [`LANES.md`](LANES.md) paths.
 

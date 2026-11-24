@@ -40,10 +40,11 @@ module. Follow [Scope large reviews](workflow.md#scope-large-reviews).
 
 ## Run reviewers
 
-Render `<this-skill-dir>/agents/code-simplifier.md`. The renderer includes all
-of [simplification-lenses.md](simplification-lenses.md), including Common.
+Pass `<this-skill-dir>/agents/code-simplifier.md` as `<worker.md>` in the
+shared prompt command. The script adds all of
+[simplification-lenses.md](simplification-lenses.md), including Common.
 
-The renderer supplies the local digest and the bundle index, changes patch,
+The script supplies the local digest and the bundle index, changes patch,
 or whole-file manifest for the selected scope. Follow
 [Run reviewers](workflow.md#run-reviewers).
 
