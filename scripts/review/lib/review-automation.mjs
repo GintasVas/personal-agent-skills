@@ -186,7 +186,24 @@ export function reviewCodeRoot(manifest) {
 export function requiredReviewStandards(directory, manifest) {
   const listPath = join(directory, 'required-standards.json');
   if (!existsSync(listPath)) return [];
-  const paths = JSON.parse(readFileSync(listPath, 'utf8'));
+  const selection = JSON.parse(readFileSync(listPath, 'utf8'));
+  let paths = selection;
+  if (selection && typeof selection === 'object' && !Array.isArray(selection)) {
+    const indexPath = join(directory, 'review-index.json');
+    const scopes = existsSync(indexPath)
+      ? JSON.parse(readFileSync(indexPath, 'utf8')).bundles.map(({ name }) => name)
+      : ['scope'];
+    const missing = scopes.filter((scope) => !Object.hasOwn(selection, scope));
+    const extra = Object.keys(selection).filter((scope) => !scopes.includes(scope));
+    if (missing.length || extra.length) {
+      throw new Error(`Required standards need one decision per review scope. Missing: ${JSON.stringify(missing)}. Unknown: ${JSON.stringify(extra)}.`);
+    }
+    const decisions = scopes.map((scope) => selection[scope]);
+    if (!decisions.every(Array.isArray)) {
+      throw new Error('Each review scope must list repository-relative standards paths.');
+    }
+    paths = decisions.flat();
+  }
   if (!Array.isArray(paths) || paths.some((path) =>
     typeof path !== 'string' || isAbsolute(path) ||
     path.split('/').some((part) => !part.trim() || part === '.' || part === '..')

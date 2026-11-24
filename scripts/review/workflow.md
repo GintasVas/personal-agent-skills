@@ -62,8 +62,15 @@ anchors. The parent does not read the global line map.
 
 ## Run reviewers
 
-Use the scope and repo routing once to select required standards. If any apply,
-write their repo-relative paths as a JSON array in `REVIEW_DIR/required-standards.json`.
+Code reviewers load the applicable repo standards. If the user requires
+specific standards, put a JSON array of their repo-relative paths in
+`REVIEW_DIR/required-standards.json`.
+
+For spec audits, follow the pinned repo's routing for each bundle. Map each
+bundle name to its repo-relative routing and standards paths in
+`REVIEW_DIR/required-standards.json`. Use `"scope"` for an unbundled audit and
+`[]` for a scope with no matches.
+
 Append a context file path only for settings or writing rules the worker lacks.
 Pass untrusted text by path.
 
@@ -99,7 +106,7 @@ node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW
 If verification fails, report the actual reason. Treat the results as
 unverified and do not post. If the patch changed, mark the results stale.
 When verification returns `contextChangesPath`, mark results stale if their
-`evidencePaths` or required standards intersect that list. If the list has
+`evidencePaths` or reported standards intersect that list. If the list has
 entries and a result lacks evidence paths, recheck it on fresh input. Post only
 verified entries using the verified `headRefOid`.
 

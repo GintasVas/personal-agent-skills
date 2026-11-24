@@ -68,7 +68,7 @@ try {
       'Before treating an empty search as evidence of absence, search only the code root with rg --no-ignore.',
       `Look up an anchor with: node "${join(skillDir, 'scripts/review-results.mjs')}" anchor "<map>" "<path>" "<LEFT|RIGHT>" "<line>".`,
       'Query the bundle anchor file or line map by location. Keep the full map out of context.',
-      'Use the applicable repository standards and list the sources you actually read.',
+      'Use applicable repository standards. Record each standard you read as a repo-relative path in standards.',
       'Return only one self-contained final JSON object. If the host permits a result file, write the object there. Put summaries in notes and include every result and its metadata.',
       'For input errors, return an object with inputError and the reason. Otherwise use this result shape:',
       JSON.stringify({ model, ...identity, standards: [], comments: [], notes: [], descriptionNotes: [] }),
