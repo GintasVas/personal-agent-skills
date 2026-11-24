@@ -23,6 +23,8 @@ Use applicable lenses to spot candidates. Apply the
 ## User interface
 
 - **Redundant State.** State is stored even though existing state can derive it.
+- **Prop for One Caller.** A shared component has a prop for one caller. Check
+  whether the caller can compose the UI.
 - **Unnecessary Component Split.** A child component exists only to shorten a
   file.
 - **Resource Lifetime.** Representation conversion creates a resource whose
@@ -41,8 +43,10 @@ Use applicable lenses to spot candidates. Apply the
 
 - **Redundant Data.** A column, enum, or lookup table restates data stored
   elsewhere.
-- **Multiple Sources of Truth.** Schema and code both own a rule, canonical
-  identifier, or ordering. Check whether each layer has a distinct purpose.
+- **Duplicated Domain Values.** Look for shared or generated definitions of
+  domain identifiers, constants, and enums. Compare values and order separately.
+- **Multiple Sources of Truth.** Schema and code both own a rule. Check whether
+  each layer has a distinct purpose.
 - **Nullable State.** A nullable field stands in for a missing relation or state.
 - **Migration Safety.** A migration cannot safely rerun or ignores existing rows.
 - **Rolling Deployment Compatibility.** Old or new code fails against the
@@ -59,8 +63,8 @@ Use applicable lenses to spot candidates. Apply the
 
 ## Shared library
 
-- **Consumer-Specific Shared Code.** A shared prop or export exists for one
-  caller, or a shared package owns consumer-specific behavior. Check where
-  that behavior belongs.
+- **Consumer-Specific Shared Code.** A shared export exists for one caller,
+  or a shared package owns consumer-specific behavior. Check where that
+  behavior belongs.
 - **Redundant Dependency.** A dependency duplicates functionality the package
   already provides.

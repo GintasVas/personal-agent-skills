@@ -22,6 +22,8 @@ Use applicable lenses to spot candidates. Apply the
 
 - **Redundant State.** State is stored even though it can derive from existing
   state.
+- **Prop for One Caller.** A shared component has a prop for one caller. Check
+  whether the caller can compose the UI.
 - **Unnecessary Resource.** A direct value can replace a managed resource
   without changing its behavior.
 - **Unnecessary Component Split.** Moving JSX, callbacks, or small helpers
@@ -35,8 +37,10 @@ Use applicable lenses to spot candidates. Apply the
 
 ## Data model
 
-- **Multiple Sources of Truth.** Schema and code both own a rule, canonical
-  value, or ordering. Check whether each layer has a distinct purpose.
+- **Duplicated Domain Values.** Look for shared or generated definitions of
+  domain identifiers, constants, and enums. Reuse values in the required order.
+- **Multiple Sources of Truth.** Schema and code both own a rule. Check whether
+  each layer has a distinct purpose.
 - **Redundant Data.** A field or table duplicates data that an existing relation
   or state already represents.
 
@@ -49,8 +53,8 @@ Use applicable lenses to spot candidates. Apply the
 
 ## Shared library
 
-- **Consumer-Specific Shared Code.** A shared prop, export, dependency, or
-  branch exists for one caller. Check where that behavior belongs.
+- **Consumer-Specific Shared Code.** A shared export, dependency, or branch
+  exists for one caller. Check where that behavior belongs.
 - **Inconsistent Patterns.** Equivalent consumers express the same operation
   in competing ways.
 - **Redundant Indirection.** An obsolete wrapper or conversion can become
