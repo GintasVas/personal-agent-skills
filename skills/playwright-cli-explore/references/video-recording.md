@@ -1,5 +1,7 @@
 # Video recording
 
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
 Exploratory recording produces WebM video. Keep it under `.tmp/`; use
 `capture-local-ui` and the repository runner for a final recording or PR
 evidence. Video recording requires Playwright's FFmpeg binary. If it is
@@ -7,17 +9,17 @@ missing, follow the project's provisioning instructions before recording.
 
 ```bash
 export PLAYWRIGHT_MCP_OUTPUT_DIR=.tmp/playwright-cli/<task>
-bunx @playwright/cli@0.1.18 -s=<task> open https://example.test
-bunx @playwright/cli@0.1.18 -s=<task> video-start "$PLAYWRIGHT_MCP_OUTPUT_DIR/flow.webm"
-bunx @playwright/cli@0.1.18 -s=<task> video-chapter "Starting flow" \
+sh "$PWCLI" -s=<task> open https://example.test
+sh "$PWCLI" -s=<task> video-start "$PLAYWRIGHT_MCP_OUTPUT_DIR/flow.webm"
+sh "$PWCLI" -s=<task> video-chapter "Starting flow" \
   --description="Opening the target state" --duration=1500
-bunx @playwright/cli@0.1.18 -s=<task> video-show-actions \
+sh "$PWCLI" -s=<task> video-show-actions \
   --duration=600 --position=top-right
-bunx @playwright/cli@0.1.18 -s=<task> click \
+sh "$PWCLI" -s=<task> click \
   "getByRole('button', { name: 'Continue' })"
-bunx @playwright/cli@0.1.18 -s=<task> video-hide-actions
-bunx @playwright/cli@0.1.18 -s=<task> video-stop
-bunx @playwright/cli@0.1.18 -s=<task> close
+sh "$PWCLI" -s=<task> video-hide-actions
+sh "$PWCLI" -s=<task> video-stop
+sh "$PWCLI" -s=<task> close
 ```
 
 Before `video-start`, wait for a route-specific visible control or heading and

@@ -1,27 +1,29 @@
 # Request mocking
 
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
 Routes can block, fulfill, or modify requests within the named browser session.
 Use the narrowest URL pattern that covers the scenario.
 
 ```bash
 # Return an error for images.
-bunx @playwright/cli@0.1.18 -s=<task> route "**/*.jpg" --status=404
+sh "$PWCLI" -s=<task> route "**/*.jpg" --status=404
 
 # Fulfill an API response.
-bunx @playwright/cli@0.1.18 -s=<task> route "**/api/users" \
+sh "$PWCLI" -s=<task> route "**/api/users" \
   --body='[{"id":1,"name":"Example"}]' \
   --content-type=application/json
 
 # Add a response header or remove sensitive request headers.
-bunx @playwright/cli@0.1.18 -s=<task> route "**/api/status" \
+sh "$PWCLI" -s=<task> route "**/api/status" \
   --body='{"ok":true}' --header="X-Scenario: unavailable"
-bunx @playwright/cli@0.1.18 -s=<task> route "**/*" \
+sh "$PWCLI" -s=<task> route "**/*" \
   --remove-header=cookie,authorization
 
 # Inspect and remove routes.
-bunx @playwright/cli@0.1.18 -s=<task> route-list
-bunx @playwright/cli@0.1.18 -s=<task> unroute "**/*.jpg"
-bunx @playwright/cli@0.1.18 -s=<task> unroute
+sh "$PWCLI" -s=<task> route-list
+sh "$PWCLI" -s=<task> unroute "**/*.jpg"
+sh "$PWCLI" -s=<task> unroute
 ```
 
 Patterns use Playwright glob matching:
@@ -48,7 +50,7 @@ async (page) => {
 ```
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> run-code \
+sh "$PWCLI" -s=<task> run-code \
   --filename=.tmp/playwright-cli/<task>/mock-status.js
 ```
 

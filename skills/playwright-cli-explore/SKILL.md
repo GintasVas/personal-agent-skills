@@ -4,17 +4,20 @@ description: Explore browser flows with the pinned Playwright CLI. Inspect pages
 license: Apache-2.0
 metadata:
   author: microsoft
-  version: '0.1.18'
+  source-version: '0.1.18'
   source-git-head: 'ca196c297169a494ee5517584883eada60dc8d0e'
 ---
 
 # Explore with Playwright CLI
 
-Run each command through `bunx @playwright/cli@0.1.18`. Use installed stable
-Chrome or Edge with the sandbox enabled. Keep the browser updated. If the
-sandboxed browser fails to open, report the blocker. Do not weaken protection
-or use a pinned browser for external sites. Do not install a browser, the
-package, or its managed skill as part of this workflow.
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](LICENSE).
+
+Use the bundled launcher for every CLI command. It requires Node.js and npm.
+Use installed stable Chrome or Edge with the sandbox enabled. Keep the browser
+updated. If it fails to open with the sandbox enabled, report the blocker.
+Never weaken protection or use a pinned browser for external sites.
+During exploration, do not add the package as a dependency or install it
+globally. Do not install a browser or the CLI-managed skill.
 
 Use one named session per task. Pass `-s=<task>` on session commands. Omit
 it for global `list`, `close-all`, and `kill-all`. Close the task session
@@ -24,20 +27,22 @@ approved storage state from `.tmp/`. Keep state there. Never invent credentials.
 
 ## Explore
 
-Set the browser and sandbox variables before opening a session. Use `msedge`
-in place of `chrome` to select Edge.
+Set `PWCLI` to the absolute path to the launcher in this skill directory.
+Keep it set for the reference examples. Replace placeholders before running
+the commands. Use `msedge` to select Edge.
 
 ```bash
+export PWCLI="/path/to/playwright-cli-explore/scripts/playwright-cli.sh"
 export PLAYWRIGHT_MCP_OUTPUT_DIR=.tmp/playwright-cli/<task>
 export PLAYWRIGHT_MCP_BROWSER=chrome
 export PLAYWRIGHT_MCP_SANDBOX=1
-bunx @playwright/cli@0.1.18 -s=<task> open <url>
-bunx @playwright/cli@0.1.18 -s=<task> snapshot --filename="$PLAYWRIGHT_MCP_OUTPUT_DIR/start.yml"
-bunx @playwright/cli@0.1.18 -s=<task> find "Save"
-bunx @playwright/cli@0.1.18 -s=<task> click "getByRole('button', { name: 'Save' })"
-bunx @playwright/cli@0.1.18 -s=<task> console
-bunx @playwright/cli@0.1.18 -s=<task> requests
-bunx @playwright/cli@0.1.18 -s=<task> close
+sh "$PWCLI" -s=<task> open <url>
+sh "$PWCLI" -s=<task> snapshot --filename="$PLAYWRIGHT_MCP_OUTPUT_DIR/start.yml"
+sh "$PWCLI" -s=<task> find "Save"
+sh "$PWCLI" -s=<task> click "getByRole('button', { name: 'Save' })"
+sh "$PWCLI" -s=<task> console
+sh "$PWCLI" -s=<task> requests
+sh "$PWCLI" -s=<task> close
 ```
 
 Use semantic locators in tests. Use snapshot refs only during exploration.
@@ -64,6 +69,6 @@ For final evidence or seeded auth, use the repo's
   [Playwright tests](references/playwright-tests.md), and
   [test generation](references/test-generation.md).
 
-Adapted and shortened from [Microsoft Playwright CLI v0.1.18](https://github.com/microsoft/playwright-cli/releases/tag/v0.1.18)
-under the [Apache 2.0 license](LICENSE). Use this skill's distinct name so
-the CLI can continue to verify its own installer-managed skill.
+Adapted from [Microsoft's Playwright CLI skill](https://github.com/microsoft/playwright-cli/tree/v0.1.18/skills/playwright-cli).
+The launcher pins the runtime. Keep this skill's distinct name so the CLI can
+verify its installer-managed skill.

@@ -1,17 +1,19 @@
 # Tracing
 
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
 A trace captures actions, DOM snapshots, screenshots, network activity, console
 messages, and timing. Start it before the behavior under investigation and stop
 it immediately afterward.
 
 ```bash
 export PLAYWRIGHT_MCP_OUTPUT_DIR=.tmp/playwright-cli/<task>
-bunx @playwright/cli@0.1.18 -s=<task> open https://example.test
-bunx @playwright/cli@0.1.18 -s=<task> tracing-start
-bunx @playwright/cli@0.1.18 -s=<task> click \
+sh "$PWCLI" -s=<task> open https://example.test
+sh "$PWCLI" -s=<task> tracing-start
+sh "$PWCLI" -s=<task> click \
   "getByRole('button', { name: 'Save' })"
-bunx @playwright/cli@0.1.18 -s=<task> tracing-stop
-bunx @playwright/cli@0.1.18 -s=<task> close
+sh "$PWCLI" -s=<task> tracing-stop
+sh "$PWCLI" -s=<task> close
 ```
 
 Trace output belongs under `.tmp/playwright-cli/<task>/`. It can contain

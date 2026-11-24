@@ -1,5 +1,7 @@
 # Storage state
 
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
 Storage state can contain authentication cookies and application data. Keep it
 only under `.tmp/playwright-cli/<task>/`, never commit it, and delete it when
 the task ends. Do not invent credentials or create authentication state by
@@ -8,12 +10,12 @@ guessing a login flow. Use `capture-local-ui` for seeded local authentication.
 ## Save and load
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> state-save \
+sh "$PWCLI" -s=<task> state-save \
   .tmp/playwright-cli/<task>/state.json
 
-bunx @playwright/cli@0.1.18 -s=<task> state-load \
+sh "$PWCLI" -s=<task> state-load \
   .tmp/playwright-cli/<task>/approved-state.json
-bunx @playwright/cli@0.1.18 -s=<task> reload
+sh "$PWCLI" -s=<task> reload
 ```
 
 The state file contains cookies and origin-scoped browser storage. Treat its
@@ -22,13 +24,13 @@ contents as sensitive even when the current flow appears anonymous.
 ## Cookies
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> cookie-list
-bunx @playwright/cli@0.1.18 -s=<task> cookie-list --domain=example.test
-bunx @playwright/cli@0.1.18 -s=<task> cookie-get preference
-bunx @playwright/cli@0.1.18 -s=<task> cookie-set preference compact \
+sh "$PWCLI" -s=<task> cookie-list
+sh "$PWCLI" -s=<task> cookie-list --domain=example.test
+sh "$PWCLI" -s=<task> cookie-get preference
+sh "$PWCLI" -s=<task> cookie-set preference compact \
   --domain=example.test --path=/ --secure --sameSite=Lax
-bunx @playwright/cli@0.1.18 -s=<task> cookie-delete preference
-bunx @playwright/cli@0.1.18 -s=<task> cookie-clear
+sh "$PWCLI" -s=<task> cookie-delete preference
+sh "$PWCLI" -s=<task> cookie-clear
 ```
 
 Cookie options include domain, path, expiry, `httpOnly`, `secure`, and
@@ -37,17 +39,17 @@ Cookie options include domain, path, expiry, `httpOnly`, `secure`, and
 ## Local and session storage
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> localstorage-list
-bunx @playwright/cli@0.1.18 -s=<task> localstorage-get theme
-bunx @playwright/cli@0.1.18 -s=<task> localstorage-set theme dark
-bunx @playwright/cli@0.1.18 -s=<task> localstorage-delete theme
-bunx @playwright/cli@0.1.18 -s=<task> localstorage-clear
+sh "$PWCLI" -s=<task> localstorage-list
+sh "$PWCLI" -s=<task> localstorage-get theme
+sh "$PWCLI" -s=<task> localstorage-set theme dark
+sh "$PWCLI" -s=<task> localstorage-delete theme
+sh "$PWCLI" -s=<task> localstorage-clear
 
-bunx @playwright/cli@0.1.18 -s=<task> sessionstorage-list
-bunx @playwright/cli@0.1.18 -s=<task> sessionstorage-get step
-bunx @playwright/cli@0.1.18 -s=<task> sessionstorage-set step 3
-bunx @playwright/cli@0.1.18 -s=<task> sessionstorage-delete step
-bunx @playwright/cli@0.1.18 -s=<task> sessionstorage-clear
+sh "$PWCLI" -s=<task> sessionstorage-list
+sh "$PWCLI" -s=<task> sessionstorage-get step
+sh "$PWCLI" -s=<task> sessionstorage-set step 3
+sh "$PWCLI" -s=<task> sessionstorage-delete step
+sh "$PWCLI" -s=<task> sessionstorage-clear
 ```
 
 For multiple operations or IndexedDB inspection, use a trusted `run-code`

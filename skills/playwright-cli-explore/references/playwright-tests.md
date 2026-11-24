@@ -1,5 +1,7 @@
 # Running and debugging Playwright tests
 
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
 Use the repository's documented Playwright test command for final tests and
 evidence. Do not use an ad hoc command.
 
@@ -15,7 +17,7 @@ PLAYWRIGHT_HTML_OPEN=never <repository-test-command> --debug=cli
 Attach with the pinned CLI:
 
 ```bash
-bunx @playwright/cli@0.1.18 attach tw-abcdef
+sh "$PWCLI" attach tw-abcdef
 ```
 
 The test pauses at the start. Step or resume until the likely failure point,

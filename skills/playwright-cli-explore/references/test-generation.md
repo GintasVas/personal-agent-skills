@@ -1,5 +1,7 @@
 # Test generation
 
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
 Use a plan, generate, and heal loop. CLI actions print equivalent Playwright
 TypeScript, but the printed code is a draft: replace transient snapshot refs
 with semantic locators and add explicit assertions.
@@ -8,10 +10,10 @@ with semantic locators and add explicit assertions.
 
 ```bash
 export PLAYWRIGHT_MCP_OUTPUT_DIR=.tmp/playwright-cli/<task>
-bunx @playwright/cli@0.1.18 -s=<task> open https://example.test
-bunx @playwright/cli@0.1.18 -s=<task> snapshot --depth=4
-bunx @playwright/cli@0.1.18 -s=<task> find "Submit"
-bunx @playwright/cli@0.1.18 -s=<task> --raw generate-locator e5
+sh "$PWCLI" -s=<task> open https://example.test
+sh "$PWCLI" -s=<task> snapshot --depth=4
+sh "$PWCLI" -s=<task> find "Submit"
+sh "$PWCLI" -s=<task> --raw generate-locator e5
 ```
 
 The locator priority is role and accessible name, label, visible text, and then
@@ -21,10 +23,10 @@ refs are last-resort exploratory targets.
 Use focused reads to learn assertion values:
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> --raw eval \
+sh "$PWCLI" -s=<task> --raw eval \
   "element => element.textContent" \
   "getByRole('status')"
-bunx @playwright/cli@0.1.18 -s=<task> --raw snapshot \
+sh "$PWCLI" -s=<task> --raw snapshot \
   "getByRole('main')"
 ```
 

@@ -1,15 +1,17 @@
 # Running custom Playwright code
 
-`run-code` executes trusted JavaScript with the current Playwright `page`.
-Treat it as arbitrary code execution. Prefer built-in CLI commands, and use
-`run-code` only when a workflow needs Playwright APIs the CLI does not expose.
+> GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](../LICENSE).
+
+`run-code` runs trusted JavaScript with the current Playwright `page`.
+The runtime isolates the code from Node.js modules, `require`, and `process`.
+Use `run-code` only for Playwright APIs that built-in commands cannot access.
 
 ## Syntax
 
 Use an inline function for one short operation:
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> run-code \
+sh "$PWCLI" -s=<task> run-code \
   "async page => await page.title()"
 ```
 
@@ -25,7 +27,7 @@ async (page) => {
 ```
 
 ```bash
-bunx @playwright/cli@0.1.18 -s=<task> run-code \
+sh "$PWCLI" -s=<task> run-code \
   --filename=.tmp/playwright-cli/<task>/save-flow.js
 ```
 
