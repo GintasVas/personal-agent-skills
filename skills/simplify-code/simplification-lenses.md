@@ -1,42 +1,57 @@
 # Simplification lenses
 
-Each lens identifies a concrete simplification candidate in a matching changed
-bundle. It is not a requirement to extract or inject a new abstraction. Apply
-the constraint, gain, and behavior-preservation requirements in `SKILL.md`.
+Use applicable lenses to spot candidates. Apply the
+[worker's evidence rules](agents/code-simplifier.md#review) before reporting.
+
+## Common
+
+- **Feature Envy.** Logic depends mainly on data another module owns.
+- **Data Clumps.** The same fields travel together because they represent one
+  concept.
+- **Message Chains.** A caller navigates another module's internal objects.
+- **Mixed Responsibilities.** UI rendering or reactive coordination mixes
+  with independent policy, computation, platform mechanics, or workflows.
+  A handler mixes orchestration, policy, and integration. Consider plain
+  functions for pure work and focused hooks for reusable reactive work.
+- **Dependency Direction.** A narrow input or port can free domain policy from
+  framework or infrastructure details. Use adapters for browser APIs.
+- **Interface Segregation.** An interface forces unrelated implementations
+  or fakes to adopt one method.
 
 ## User interface
 
-- State is stored even though it can derive from existing state.
-- A component or hook mixes rendering or reactive coordination with independent
-  policy, reusable computation, or platform mechanics.
-- Data representation conversion creates a value with a lifetime that must be
-  managed.
-- A shared-component prop serves one caller instead of a semantic boundary.
-- A child component exists only to shorten its parent.
+- **Redundant State.** State is stored even though it can derive from existing
+  state.
+- **Unnecessary Resource.** A direct value can replace a managed resource
+  without changing its behavior.
+- **Unnecessary Component Split.** Moving JSX, callbacks, or small helpers
+  only shortens a file. Extract a child for a distinct semantic or behavioral
+  boundary.
 
 ## Service and API
 
-- Validation, error mapping, retries, timeouts, or pagination repeats near an
-  established helper.
-- A handler mixes orchestration, domain policy, and external integration.
-- An interface forces unrelated implementations or fakes to adopt one method.
+- **Existing Shared Helper.** Validation, error mapping, retries, timeouts, or
+  pagination repeat near an established helper.
 
 ## Data model
 
-- Canonical values or ordering duplicate schema and code.
-- Schema and application code each claim to enforce the same rule.
-- A field or table duplicates data that an existing relation or state already
-  represents.
+- **Multiple Sources of Truth.** Schema and code both own a rule, canonical
+  value, or ordering. Check whether each layer has a distinct purpose.
+- **Redundant Data.** A field or table duplicates data that an existing relation
+  or state already represents.
 
 ## Infrastructure and pipelines
 
-- Resources, configuration, or pipeline steps repeat across environments.
-- Identifiers, ports, timeouts, flags, or image tags must stay synchronized in
-  more than one place.
-- An added resource leaves sibling lifecycle or retention behavior unmodeled.
+- **Duplicated Configuration.** Environments repeat resources, settings, or
+  pipeline steps. Check identifiers, ports, timeouts, flags, and image tags.
+- **Duplicated Lifecycle Rules.** Resources repeat equivalent lifecycle or
+  retention rules that can be shared.
 
 ## Shared library
 
-- An export, dependency, or consumer-specific branch exists for one consumer.
-- Equivalent consumers express the same operation in competing ways.
-- A wrapper or conversion became obsolete and can become direct.
+- **Consumer-Specific Shared Code.** A shared prop, export, dependency, or
+  branch exists for one caller. Check where that behavior belongs.
+- **Inconsistent Patterns.** Equivalent consumers express the same operation
+  in competing ways.
+- **Redundant Indirection.** An obsolete wrapper or conversion can become
+  direct.

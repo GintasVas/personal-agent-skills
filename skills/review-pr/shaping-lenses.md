@@ -1,51 +1,66 @@
 # Review shaping lenses
 
-Each lens is a concrete symptom to investigate in a matching changed bundle.
-It is not a verdict. Apply the evidence requirements in `SKILL.md` before
-reporting a postable maintainability finding or a design alternative.
+Use applicable lenses to spot candidates. Apply the
+[worker's evidence rules](agents/code-reviewer.md#review) before reporting.
+
+## Common
+
+- **Primitive Obsession.** A changed path uses raw values and accepts an
+  invalid domain value.
+- **Repeated Rules.** Copies of a rule in UI or handlers can drift. Check
+  display conversions, validation, permissions, and partial policy updates
+  (Shotgun Surgery).
+- **Mixed Responsibilities.** UI fetches and renders, or handlers mix
+  orchestration, policy, and external calls. Look for independent changes
+  that the same code must absorb.
+- **Public Contract Changes.** A changed signature or behavior breaks callers
+  or implementations. Check promises about errors and idempotency.
+- **Dependency Direction.** Platform calls bypass an existing adapter, or
+  changes to framework or infrastructure details force edits to domain policy.
+- **Interface Segregation.** An interface grows a method unrelated
+  implementations and fakes must absorb.
 
 ## User interface
 
-- A component both fetches data and renders it.
-- Formatting, validation, or permission logic duplicates a shared place.
-- A shared-component prop exists to serve one caller.
-- State is stored even though existing state can derive it.
-- A child component exists only to shorten a file.
-- Platform APIs bypass an existing adapter.
-- Representation conversion creates a resource whose lifetime needs manual
-  management.
+- **Redundant State.** State is stored even though existing state can derive it.
+- **Unnecessary Component Split.** A child component exists only to shorten a
+  file.
+- **Resource Lifetime.** Representation conversion creates a resource whose
+  lifetime needs manual management.
 
 ## Service and API
 
-- Policy or validation repeats across handlers.
-- A handler combines orchestration, domain rules, and external calls.
-- An interface grows a method unrelated implementations and fakes must absorb.
-- Error mapping, logging, retrying, timeouts, or pagination diverge from
-  sibling endpoints.
-- A loop runs a query or read port call once per item (N+1) where one
+- **Inconsistent Endpoints.** Error mapping, logging, retrying, timeouts, or
+  pagination diverge from sibling endpoints.
+- **Retry Idempotency.** A retry repeats a write or other effect that must
+  happen once.
+- **N+1 Queries.** A loop runs a query or read port call per item where one
   set-based call would do.
 
 ## Data model
 
-- A column, enum, or lookup table restates data stored elsewhere.
-- Canonical identifiers or ordered domain values duplicate schema and code.
-- A nullable field stands in for a missing relation or state.
-- A migration cannot safely rerun or ignores existing rows.
-- An index duplicates the prefix of an existing index.
-- A rule has two sources of truth in schema and application code.
+- **Redundant Data.** A column, enum, or lookup table restates data stored
+  elsewhere.
+- **Multiple Sources of Truth.** Schema and code both own a rule, canonical
+  identifier, or ordering. Check whether each layer has a distinct purpose.
+- **Nullable State.** A nullable field stands in for a missing relation or state.
+- **Migration Safety.** A migration cannot safely rerun or ignores existing rows.
+- **Rolling Deployment Compatibility.** Old or new code fails against the
+  schema during a rolling deploy.
+- **Redundant Index.** An index duplicates the prefix of an existing index.
 
 ## Infrastructure and pipelines
 
-- Resources or steps are copied per environment instead of using an existing
-  variable or module.
-- Identifiers, regions, sizes, accounts, image tags, ports, timeouts, or flags
-  are duplicated across configuration.
-- A resource lacks the lifecycle, teardown, or retention policy of siblings.
+- **Duplicated Configuration.** Environments copy resources or steps instead
+  of using an existing variable or module. Check repeated identifiers, regions,
+  sizes, accounts, image tags, ports, timeouts, and flags.
+- **Missing Lifecycle Policy.** A resource lacks the lifecycle, teardown, or
+  retention policy of siblings.
 
 ## Shared library
 
-- An export exists to serve one consumer.
-- Consumer-specific behavior leaks into a shared package.
-- A breaking signature change forces unrelated callers or implementations to
-  change.
-- A dependency duplicates functionality the package already provides.
+- **Consumer-Specific Shared Code.** A shared prop or export exists for one
+  caller, or a shared package owns consumer-specific behavior. Check where
+  that behavior belongs.
+- **Redundant Dependency.** A dependency duplicates functionality the package
+  already provides.

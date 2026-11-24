@@ -1,0 +1,7 @@
+capture-local-ui
+create-pull-request
+playwright-cli-explore
+review-pr
+simplify-code
+spec-audit-pr
+worktree

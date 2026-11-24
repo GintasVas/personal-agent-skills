@@ -1,8 +1,24 @@
 #!/usr/bin/env node
+import { posix } from 'node:path';
+
 import { fail, readJsonFile } from './lib/review-automation.mjs';
 
 const SEVERITY_ORDER = { P0: 0, P1: 1, P2: 2 };
 const TOOL = 'audit_structure.py';
+
+function evidencePaths(result, manifest) {
+  const paths = new Set([result.path, ...manifest]);
+  if (result.rule_id === 'S010') {
+    for (const link of result.evidence) {
+      const [target] = link.split('#', 1);
+      const path = target.startsWith('/')
+        ? target.slice(1)
+        : posix.join(posix.dirname(result.path), target);
+      paths.add(posix.normalize(path));
+    }
+  }
+  return [...paths].sort();
+}
 
 function compare(first, second) {
   return (
@@ -97,6 +113,7 @@ for (const reportPath of reportPaths) {
       path: result.path,
       requirement: result.requirement,
       findingKey: `${result.rule_id}:${result.path}:${result.requirement}`,
+      evidencePaths: evidencePaths(result, report.manifest ?? []),
       tool: TOOL,
       body: `**[${result.severity}] - ${result.rule_id} Structure - confidence 100:**\n\nIn ${result.requirement}: ${result.message}`
     };

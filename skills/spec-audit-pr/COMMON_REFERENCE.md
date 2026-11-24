@@ -161,8 +161,7 @@ Map every implementation task group to applicable verification:
 - UI states, validation, and accessibility have component or browser tests
 - external dependencies cover unavailable, invalid, and partial-success behavior
 
-Documentation validation, ASCII checks, lint, and typecheck do not replace behavior tests. Apply
-Q017 when tasks add production behavior without matching test tasks.
+Apply Q017 when tasks add production behavior without matching behavior tests.
 
 ### Dependency readiness
 

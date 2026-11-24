@@ -15,7 +15,13 @@ The installer links eligible skills into `~/.agents/skills` (Codex, Cursor), `~/
 links. The `post-merge` hook reruns the installer after `git pull`, so new or
 deleted skills link and unlink on their own.
 
-To add a skill, create `skills/<name>/SKILL.md`. Add a `.no-install` file
-in the skill directory to share it without automatic local installation.
-Run `scripts/install.sh` to update links for the other skills.
+To add a skill, create `skills/<name>/SKILL.md`. To share it without automatic
+local installation, add its directory name to [`no-install.txt`](no-install.txt).
+Use one name per line. Run `scripts/install.sh` to update the links.
 Keep skills harness-neutral; reference bundled files as `<this-skill-dir>/...`.
+
+`review-pr`, `simplify-code`, and `spec-audit-pr` link to shared scripts,
+workflow, and host guidance in [`scripts/review/`](scripts/review/). Edit that copy to
+update all three skills. Clone the repository to keep the links intact.
+To share one skill as a standalone directory, copy it with `cp -RL` so it
+includes the linked files.

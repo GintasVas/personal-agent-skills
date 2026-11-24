@@ -225,24 +225,14 @@ test('posting validates the whole batch before the first comment', () => {
           reference: '123',
           selectedModels: SELECTED_MODELS
         },
-        {
+        pullRequestDependencies(patch, {
           createComment() {
             postedComments += 1;
             return {
               html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
             };
-          },
-          getDiff() {
-            return patch;
-          },
-          getPullRequest() {
-            return {
-              headRefOid: 'abc123',
-              number: 123,
-              url: 'https://github.com/example-org/example-app/pull/123'
-            };
           }
-        }
+        })
       ),
     /anchor does not match/
   );
@@ -260,24 +250,14 @@ test('posting adds model attribution in selected-model order', () => {
       reference: '123',
       selectedModels: SELECTED_MODELS
     },
-    {
+    pullRequestDependencies(patch, {
       createComment(_repository, _pullRequestNumber, payload) {
         posted.push(payload);
         return {
           html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
         };
-      },
-      getDiff() {
-        return patch;
-      },
-      getPullRequest() {
-        return {
-          headRefOid: 'abc123',
-          number: 123,
-          url: 'https://github.com/example-org/example-app/pull/123'
-        };
       }
-    }
+    })
   );
 
   assert.equal(
@@ -288,8 +268,8 @@ test('posting adds model attribution in selected-model order', () => {
 
 function pullRequestDependencies(patch, overrides = {}) {
   return {
-    getDiff() {
-      return patch;
+    getVerifiedInput() {
+      return { patch, contextChanges: [] };
     },
     getPullRequest() {
       return {
@@ -304,6 +284,9 @@ function pullRequestDependencies(patch, overrides = {}) {
 
 test('posting attributes script findings and marks general comments', () => {
   const patch = addedFilePatch('docs/plan.md', 37, ['first changed line']);
+  const specPath = 'specs/changes/a/change.yaml';
+  const findingKey = `S002:${specPath}:missing schema`;
+  const body = '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare a schema.';
   const posted = [];
 
   postInlineComments(
@@ -311,9 +294,10 @@ test('posting attributes script findings and marks general comments', () => {
       comments: [
         {
           anchor: 'none',
-          body: '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.',
-          findingKey: 'S002:openspec/changes/a/.openspec.yaml:change configuration',
-          path: 'openspec/changes/a/.openspec.yaml',
+          body,
+          evidencePaths: [specPath],
+          findingKey,
+          path: specPath,
           tool: 'audit_structure.py'
         }
       ],
@@ -322,6 +306,9 @@ test('posting attributes script findings and marks general comments', () => {
       selectedModels: SELECTED_MODELS
     },
     pullRequestDependencies(patch, {
+      getVerifiedInput() {
+        return { patch, contextChanges: ['docs/unrelated.md'] };
+      },
       createGeneralComment(_repository, _pullRequestNumber, payload) {
         posted.push(payload);
         return {
@@ -336,9 +323,7 @@ test('posting attributes script findings and marks general comments', () => {
 
   assert.equal(
     posted[0].body,
-    '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.\n\nFile: `openspec/changes/a/.openspec.yaml`\n\nFound by: `audit_structure.py`\n\n<!-- agent-finding:' +
-      findingDigest('S002:openspec/changes/a/.openspec.yaml:change configuration') +
-      ' -->'
+    `${body}\n\nFile: \`${specPath}\`\n\nFound by: \`audit_structure.py\`\n\n<!-- agent-finding:${findingDigest(findingKey)} -->`
   );
 });
 
@@ -410,7 +395,7 @@ test('reports each posted URL before a later posting failure', () => {
           reference: '123',
           selectedModels: SELECTED_MODELS
         },
-        {
+        pullRequestDependencies(patch, {
           createComment() {
             postedComments += 1;
 
@@ -422,20 +407,10 @@ test('reports each posted URL before a later posting failure', () => {
               html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
             };
           },
-          getDiff() {
-            return patch;
-          },
-          getPullRequest() {
-            return {
-              headRefOid: 'abc123',
-              number: 123,
-              url: 'https://github.com/example-org/example-app/pull/123'
-            };
-          },
           onPosted(url) {
             reportedUrls.push(url);
           }
-        }
+        })
       ),
     /GitHub API unavailable/
   );

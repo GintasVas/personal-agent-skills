@@ -13,6 +13,10 @@ import {
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 export const MAX_BUFFER_BYTES = 64 * 1024 * 1024;
+export const REVIEW_DIFF_ARGS = [
+  '-c', 'core.quotePath=true', 'diff', '--no-ext-diff', '--no-textconv',
+  '--no-color', '--no-relative', '--find-renames'
+];
 const STALE_REVIEW_INPUT_MS = 24 * 60 * 60 * 1000;
 const REVIEW_INPUT_PREFIX = 'review-';
 const REVIEW_INPUT_MARKER = '.agent-review-input';
@@ -242,6 +246,8 @@ export function createReviewSource(repositoryRoot, directory, pullRequest) {
     run('git', [
       '-C',
       repositoryRoot,
+      '-c',
+      'core.hooksPath=/dev/null',
       'worktree',
       'add',
       '--detach',
@@ -256,7 +262,7 @@ export function createReviewSource(repositoryRoot, directory, pullRequest) {
   }
 }
 
-export function compareWithCurrentPullRequest(repositoryRoot, manifest, current) {
+function compareWithCurrentPullRequest(repositoryRoot, manifest, current) {
   const location = reviewSourceLocation(dirname(resolve(manifest.source.worktreePath)));
   const refs = {
     baseRef: location.verifyBaseRef,
@@ -279,16 +285,19 @@ export function compareWithCurrentPullRequest(repositoryRoot, manifest, current)
             '-C',
             repositoryRoot,
             'diff',
+            '--no-renames',
             '--name-only',
+            '-z',
             manifest.source.temporaryRef,
             refs.headRef
           ])
-            .split('\n')
+            .split('\0')
             .filter((path) => path && !patchPaths.has(path));
 
     return {
       baseRefOid,
       contextChanges,
+      patch,
       patchDigest: sha256(patch)
     };
   } finally {
@@ -297,7 +306,22 @@ export function compareWithCurrentPullRequest(repositoryRoot, manifest, current)
   }
 }
 
-export function createReviewPatch(repositoryRoot, source) {
+export function verifiedReviewInput(repositoryRoot, manifest, current) {
+  if (
+    current.url !== manifest.pullRequest.url ||
+    current.baseRefName !== manifest.comparison.base.name ||
+    current.headRefName !== manifest.comparison.head.name
+  ) {
+    throw new Error(`PR #${current.number} no longer matches the pinned review input.`);
+  }
+  const result = compareWithCurrentPullRequest(repositoryRoot, manifest, current);
+  if (result.patchDigest !== manifest.patchDigest) {
+    throw new Error(`PR #${current.number} no longer matches the pinned review input.`);
+  }
+  return result;
+}
+
+export function createReviewPatch(repositoryRoot, source, { namesOnly = false } = {}) {
   if (!source?.temporaryBaseRef || !source?.temporaryRef) {
     throw new Error('review source is missing its pinned base or head ref');
   }
@@ -305,11 +329,12 @@ export function createReviewPatch(repositoryRoot, source) {
   return run('git', [
     '-C',
     repositoryRoot,
-    'diff',
-    '--no-ext-diff',
-    '--no-textconv',
-    '--binary',
-    '--full-index',
+    ...REVIEW_DIFF_ARGS,
+    ...(namesOnly ? ['--name-only', '-z'] : [
+      '--binary', '--full-index', '--diff-algorithm=myers', '--no-indent-heuristic',
+      '--src-prefix=a/', '--dst-prefix=b/', '--unified=3', '--inter-hunk-context=0',
+      '--output-indicator-new=+', '--output-indicator-old=-', '--output-indicator-context= '
+    ]),
     `${source.temporaryBaseRef}...${source.temporaryRef}`
   ]);
 }
@@ -544,15 +569,65 @@ export function directoryCluster(path) {
   return segments.length === 1 ? '.' : segments.slice(0, -1).join('/');
 }
 
+function decodeDiffPath(path) {
+  if (!path.startsWith('"')) return path;
+
+  const chunks = [];
+  const escapes = {
+    a: '\x07', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v', '"': '"', '\\': '\\'
+  };
+  const text = path.slice(1, -1);
+  let end = 0;
+  for (const match of text.matchAll(/\\([0-7]{3}|u[0-9a-fA-F]{4}|[abfnrtv"\\])/g)) {
+    chunks.push(Buffer.from(text.slice(end, match.index)));
+    const escape = match[1];
+    if (/^[0-7]/.test(escape)) {
+      chunks.push(Buffer.from([Number.parseInt(escape, 8)]));
+    } else if (escape[0] === 'u') {
+      chunks.push(Buffer.from(String.fromCharCode(Number.parseInt(escape.slice(1), 16))));
+    } else {
+      chunks.push(Buffer.from(escapes[escape]));
+    }
+    end = match.index + match[0].length;
+  }
+  chunks.push(Buffer.from(text.slice(end)));
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+function diffPath(lines, index) {
+  let oldSide;
+  for (let next = index + 1; next < lines.length; next += 1) {
+    const line = lines[next];
+    if (line.startsWith('@@') || line.startsWith('diff --git ')) break;
+    if (line.startsWith('rename to ') || line.startsWith('copy to ')) {
+      return decodeDiffPath(line.slice(line.indexOf(' to ') + 4));
+    }
+    if (line.startsWith('--- ')) oldSide = line.slice(4);
+    if (line.startsWith('+++ ')) {
+      const newSide = line.slice(4);
+      return decodeDiffPath((newSide === '/dev/null' ? oldSide : newSide).replace(/\t$/, '')).slice(2);
+    }
+  }
+
+  const header = lines[index];
+  const quoted = header.match(/ ("b\/(?:[^"\\]|\\.)*")$/);
+  if (quoted) return decodeDiffPath(quoted[1]).slice(2);
+  const identical = header.match(/^diff --git a\/(.*) b\/\1$/);
+  const separator = header.lastIndexOf(' b/');
+  if (identical) return identical[1];
+  if (separator >= 0) return header.slice(separator + 3);
+  throw new Error(`Could not read the file path from "${header}".`);
+}
+
 export function walkUnifiedDiff(patch, visitor) {
   let path;
   let inHunk = false;
+  const hunkCounts = new Map();
 
-  for (const line of patch.split('\n')) {
-    const header = line.match(/^diff --git a\/(.+) b\/(.+)$/);
-
-    if (header) {
-      path = header[2];
+  const lines = patch.split('\n');
+  for (const [index, line] of lines.entries()) {
+    if (line.startsWith('diff --git ')) {
+      path = diffPath(lines, index);
       inHunk = false;
       visitor.onFile?.({ path }, line);
       continue;
@@ -566,8 +641,11 @@ export function walkUnifiedDiff(patch, visitor) {
 
     if (hunk) {
       inHunk = true;
+      const count = (hunkCounts.get(path) ?? 0) + 1;
+      hunkCounts.set(path, count);
       visitor.onHunk?.(
         {
+          id: `${path}#${count}`,
           oldStart: Number(hunk[1]),
           oldLines: Number(hunk[2] ?? 1),
           newStart: Number(hunk[3]),
@@ -584,6 +662,14 @@ export function walkUnifiedDiff(patch, visitor) {
     } else {
       visitor.onFileLine?.({ line, path });
     }
+  }
+}
+
+export function assertPatchCoverage(files, expectedPaths) {
+  const actual = [...new Set(files.map(({ path }) => path))].sort();
+  const expected = [...new Set(expectedPaths)].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error('The parsed patch file list does not match the Git file list.');
   }
 }
 
@@ -751,10 +837,6 @@ export function parsePatch(patch) {
 
     return {
       ...entry,
-      hunks: entry.hunks.map((hunk, index) => ({
-        id: `${entry.path}#${index + 1}`,
-        ...hunk
-      })),
       ...classification,
       risk: riskFor(entry.path),
       bundleCandidate: directoryCluster(entry.path),
@@ -769,6 +851,7 @@ export function bundleSkeleton(manifest) {
   const bundles = new Map();
 
   for (const file of manifest.files.filter(isReviewableFile)) {
+    if (file.hunks.length === 0) continue;
     const name = file.bundleCandidate;
     const bundle = bundles.get(name) ?? { name, hunkIds: [] };
     bundle.hunkIds.push(...file.hunks.map((hunk) => hunk.id));

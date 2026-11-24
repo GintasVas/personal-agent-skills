@@ -20,103 +20,36 @@ test -f "$VERIFY"
 test -f "$CLEANUP"
 test ! -f "${SKILL_DIR}/../code-simplifier/SKILL.md"
 
-grep -Fq 'name: simplify-code' "$ORCHESTRATOR"
-grep -Fq 'disable-model-invocation: true' "$ORCHESTRATOR"
-grep -Fq '/simplify-code' "$ORCHESTRATOR"
-grep -Fq 'decompose overloaded code units' "$ORCHESTRATOR"
-grep -Fq '<this-skill-dir>/agents/code-simplifier.md' "$ORCHESTRATOR"
-grep -Fq 'Repeat `--model` to run several' "$ORCHESTRATOR"
-grep -Fq 'Treat skill scripts as command entrypoints.' "$ORCHESTRATOR"
-grep -Fq 'Do not read or inspect their source.' "$ORCHESTRATOR"
-grep -Fq 'detached head worktree' "$ORCHESTRATOR"
-grep -Fq 'For bundled PRs, pass `review-index.json` and `source`.' "$ORCHESTRATOR"
-grep -Fq '`patch.diff`, `line-map.json`, `manifest.json`, and `source`.' "$ORCHESTRATOR"
-grep -Fq 'input paths, not line-map contents. The parent does not read the global line' "$ORCHESTRATOR"
-grep -Fq 'run each job using its instructions in the prompt' "$ORCHESTRATOR"
-grep -Fq '## Scope large reviews' "$ORCHESTRATOR"
-grep -Fq 'For a review with more than 10 changed files or 500 changed lines' "$ORCHESTRATOR"
-grep -Fq 'not send the full patch to every worker.' "$ORCHESTRATOR"
-grep -Fq 'Bundle every hunk the manifest marks' "$ORCHESTRATOR"
-grep -Fq 'new shared module with only the changed importers' "$ORCHESTRATOR"
-grep -Fq 'Keep bundles bounded.' "$ORCHESTRATOR"
-grep -Fq 'build-review-bundles.mjs' "$ORCHESTRATOR"
-grep -Fq 'Every selected model gets all' "$ORCHESTRATOR"
-grep -Fq 'Synthesize without discovering new findings.' "$ORCHESTRATOR"
-grep -Fq 'canonical postable' "$ORCHESTRATOR"
-grep -Fq '"selectedModels": ["<exact slug>", "<exact slug>"]' "$ORCHESTRATOR"
-grep -Fq '"modelSlugs": ["<exact slug>"]' "$ORCHESTRATOR"
-grep -Fq 'not include a `Found by` footer' "$ORCHESTRATOR"
-grep -Fq '<this-skill-dir>/agents/code-simplifier.md' "$ORCHESTRATOR"
-grep -Fq 'using its instructions in the prompt' "$ORCHESTRATOR"
-grep -Fq 'direct prompt handoff does not invoke' "$ORCHESTRATOR"
-grep -Fq '/skill:simplify-code' "$ORCHESTRATOR"
-grep -Fq 'Before any other tool call, read only the host file' "$ORCHESTRATOR"
-for host in pi cursor-desktop cursor-cli codex other; do
-  test -f "${SKILL_DIR}/hosts/${host}.md"
-  grep -Fq "](hosts/${host}.md)" "$ORCHESTRATOR"
+LENSES="$SKILL_DIR/simplification-lenses.md"
+for text in 'name: simplify-code' 'disable-model-invocation: true' '/skill:simplify-code' \
+  '<this-skill-dir>/agents/code-simplifier.md' '[simplification-lenses.md](simplification-lenses.md), including Common.' \
+  'whole-file manifest for the selected scope.' 'digest differs.' \
+  'Reply "post all", "post 1,3", or "post none".'; do
+  grep -Fq "$text" "$ORCHESTRATOR"
 done
-if grep -Fq 'Use the Cursor runner below when a subagent' "$ORCHESTRATOR"; then
-  echo "expected desktop Cursor to use native delegation" >&2
-  exit 1
-fi
-grep -Fq 'with the absolute path to this skill directory' "$ORCHESTRATOR"
-grep -Fq '{ model: "<exact slug>", reviewerId: "pending", status: "planned" }' "$ORCHESTRATOR"
-grep -Fq 'Reviewer model: <exact slug>' "$ORCHESTRATOR"
-grep -Fq 'This is internal orchestration state;' "$ORCHESTRATOR"
-grep -Fq 'do not print it in chat.' "$ORCHESTRATOR"
-grep -Fq 'Do not include the job list or launch counts in successful' "$ORCHESTRATOR"
-grep -Fq 'do not synthesize' "$ORCHESTRATOR"
-grep -Fq 'findings as complete.' "$ORCHESTRATOR"
-if grep -Fq 'Expected <N> reviewers; launched <N>: <exact slugs>.' "$ORCHESTRATOR"; then
-  echo "expected launch counts only for failed simplifier launches" >&2
-  exit 1
-fi
-if grep -Fq 'AskQuestion' "$ORCHESTRATOR"; then
-  echo "expected simplify-code to delegate model selection to its host guidance" >&2
-  exit 1
-fi
-grep -Fq 'Selected: <exact slug>.' "$ORCHESTRATOR"
-grep -Fq 'triage every changed' "$WORKER"
-grep -Fq 'compact PR review index and detached head `source`' "$WORKER"
-grep -Fq '`source` is the only code root' "$WORKER"
-grep -Fq 'Do not infer a helper' "$WORKER"
-grep -Fq 'bundle anchor file' "$WORKER"
-grep -Fq "manifest's every materialized bundle is" "$WORKER"
-grep -Fq 'For bundled review, read every supplied bundle.' "$WORKER"
-grep -Fq 'For current changes or a' "$WORKER"
-grep -Fq 'For path scope, read the whole-file' "$WORKER"
-grep -Fq 'After every supplied hunk has been read' "$WORKER"
-grep -Fq 'reconcile interactions across' "$WORKER"
-grep -Fq 'Record an internal disposition for every changed unit' "$WORKER"
-grep -Fq '10. Resolve every candidate before returning. Record why each `no finding` unit' "$WORKER"
-grep -Fq 'If no worthwhile simplifications exist, return `No findings.` only after every' "$WORKER"
-grep -Fq 'behavior-preserving simplification' "$WORKER"
-grep -Fq 'repository-wide pattern without a candidate.' "$WORKER"
-grep -Fq 'Do not perform a broad repository search' "$WORKER"
-grep -Fq 'boundary adaptation and composition' "$WORKER"
-grep -Fq 'File length and member count alone are not evidence.' "$WORKER"
-grep -Fq 'Keep entrypoints and adapters focused' "$WORKER"
-grep -Fq '## Frontend responsibility overload' "$WORKER"
-grep -Fq 'should own reactive coordination for one concern.' "$WORKER"
-grep -Fq 'Do not move JSX, callbacks, or small helpers merely to shorten a' "$WORKER"
-grep -Fq 'Do not split' "$WORKER"
-grep -Fq 'owned responsibilities, extraction targets, and dependency' "$WORKER"
-grep -Fq 'SOLID' "$WORKER"
-grep -Fq 'A second caller or concrete planned feature is not required.' "$WORKER"
-grep -Fq 'when behavior is likely to vary by caller at a stable boundary' "$WORKER"
-grep -Fq 'likely future variation and how the seam keeps that change local' "$WORKER"
-grep -Fq 'confidence >= 75' "$WORKER"
-grep -Fq '`**[P0]:**` repository-wide or architectural gain' "$WORKER"
-grep -Fq '`Decompose`, `Extract`, `Standardize`, `Inject`, `Simplify`, or `Delete`' "$WORKER"
-grep -Fq 'Do not report bugs, security issues, performance defects, test gaps, or' "$WORKER"
-grep -Fq 'Reply "post all", "post 1,3", or "post none".' "$ORCHESTRATOR"
-grep -Fq '**[P1] - Extract - confidence 92:**' "$WORKER"
-grep -Fq 'must be postable without changes' "$WORKER"
-grep -Fq 'likely variation and evidence for it' "$WORKER"
+for text in '| Bundled PR | Detached head `source` and review index with `headRefOid` |' \
+  '| Small PR | Detached head `source`, patch, line map, and manifest with `headRefOid` |' \
+  '| Current changes | Caller repo root, patch, and patch digest |' \
+  '| Paths | Caller repo root, whole-file manifest, and input digest |' \
+  'Return an input error if required input or any materialized bundle is missing.' \
+  'Read every supplied hunk or whole-file snapshot for paths scope.' \
+  'Reconcile interactions across units.' 'Verify absence in the code root.' \
+  'Return `No findings.` only after checking all units and resolving candidates.' \
+  'cohesive state machines.' 'Check interchangeability' 'likely variation' \
+  'A second caller or planned feature is optional.' 'Use the lower score. Report only findings with confidence >= 75.' \
+  'Rank by the size, reach, and recurrence of the gain.' '| `Delete` | Remove in-scope code the refactor makes obsolete. |' \
+  'Exclude bugs, security and performance defects, test gaps, product logic,' \
+  '**[P1] - Extract - confidence 92:**' 'anchor file or line map.' 'Unrelated discovered issue.'; do
+  grep -Fq "$text" "$WORKER"
+done
+grep -Fq 'focused hooks for reusable reactive work.' "$LENSES"
+grep -Fq 'distinct semantic or behavioral' "$LENSES"
+diff -u <(grep '^## ' "$SKILL_DIR/workflow.md") <(grep '^## ' "$ORCHESTRATOR")
 grep -Fq "'--diff-algorithm=myers'" "$LOCAL_PREPARE"
 grep -Fq "'--no-indent-heuristic'" "$LOCAL_PREPARE"
 grep -Fq "'--unified=3'" "$LOCAL_PREPARE"
-grep -Fq "'--no-textconv'" "$LOCAL_PREPARE"
+grep -Fq '...REVIEW_DIFF_ARGS' "$LOCAL_PREPARE"
+grep -Fq "'--no-textconv'" "${SKILL_DIR}/scripts/lib/review-automation.mjs"
 if grep -Fq '[P1, confidence 85]:' "$ORCHESTRATOR"; then
   echo "expected simplify-code posting instructions to use the validated format" >&2
   exit 1
@@ -139,6 +72,8 @@ mkdir -p "${LOCAL_REPO}/src/nested"
   git config user.name Test
   printf 'export const one = true;\nexport const two = true;\nexport const three = true;\nexport const first = true;\nexport const five = true;\nexport const six = true;\nexport const seven = true;\n' > src/first.ts
   printf 'export const second = true;\n' > src/nested/second.ts
+  printf 'before\n' > 'src/café.md'
+  printf 'original file\n' > src/kind
   git add src
   git commit --quiet -m initial
 
@@ -151,8 +86,17 @@ mkdir -p "${LOCAL_REPO}/src/nested"
   git config diff.indentHeuristic true
   printf 'export const one = true;\nexport const two = true;\nexport const three = true;\nexport const first = false;\nexport const five = true;\nexport const six = true;\nexport const seven = true;\n' > src/first.ts
   printf 'export const third = true;\n' > src/third.ts
+  printf 'after\n' > 'src/café.md'
+  printf 'new file\n' > 'src/review notes.md'
+  unlink src/kind
+  ln -s first.ts src/kind
   node "$LOCAL_PREPARE" changes > "${TMP}/changes.out"
+  node "$LOCAL_PREPARE" changes > "${TMP}/repeat-changes.out"
 )
+
+grep '^patchDigest=' "${TMP}/changes.out" > "${TMP}/changes.digest"
+grep '^patchDigest=' "${TMP}/repeat-changes.out" > "${TMP}/repeat-changes.digest"
+cmp "${TMP}/changes.digest" "${TMP}/repeat-changes.digest"
 
 FILE_MANIFEST="$(awk -F= '/^manifest=/{ print $2 }' "${TMP}/file-path.out")"
 FILE_DIRECTORY="$(awk -F= '/^directory=/{ print $2 }' "${TMP}/file-path.out")"
@@ -169,7 +113,7 @@ grep -Fq '"path": "src/nested/second.ts"' "$DIRECTORY_MANIFEST"
 node "$BUILD" "$FILE_MANIFEST" "$FILE_BUNDLES" > "${TMP}/path-build.out"
 FILE_MATERIALIZED="${FILE_DIRECTORY}/materialized-review-bundles.json"
 node "$VERIFY" "$FILE_MANIFEST" "$FILE_MATERIALIZED" > "${TMP}/path-verify.out"
-grep -Fq 'diff --git a/src/first.ts b/src/first.ts' "${FILE_DIRECTORY}/bundles/01-src.diff"
+grep -Fq '+++ "b/src/first.ts"' "${FILE_DIRECTORY}/bundles/01-src.diff"
 grep -Fq 'export const one = true;' "${FILE_DIRECTORY}/bundles/01-src.diff"
 
 CHANGES_PATCH="$(awk -F= '/^patch=/{ print $2 }' "${TMP}/changes.out")"
@@ -181,6 +125,16 @@ grep -Fq '@@ -1,7 +1,7 @@' "$CHANGES_PATCH"
 grep -Fq '"path": "src/first.ts"' "$CHANGES_MANIFEST"
 grep -Fq '"path": "src/third.ts"' "$CHANGES_MANIFEST"
 grep -Fq '"id": "src/first.ts#1"' "$CHANGES_MANIFEST"
+jq -e '([.files[] | select(.path == "src/café.md") | .hunks | length] == [1]) and
+  ([.files[] | select(.path == "src/review notes.md") | .hunks | length] == [1]) and
+  ([.files[] | select(.path == "src/kind") | .hunks[].id] == ["src/kind#1","src/kind#2"])' \
+  "$CHANGES_MANIFEST" > /dev/null
+node "$BUILD" "$CHANGES_MANIFEST" "${CHANGES_DIRECTORY}/review-bundles.json" > /dev/null
+node "$VERIFY" "$CHANGES_MANIFEST" "${CHANGES_DIRECTORY}/materialized-review-bundles.json" > /dev/null
+if grep -Fq '"path": ".tmp/review-' "$CHANGES_MANIFEST"; then
+  echo "local review picked up its own artifacts" >&2
+  exit 1
+fi
 node "$CLEANUP" "$CHANGES_DIRECTORY" > "${TMP}/cleanup.out"
 grep -Fq "cleaned=${CHANGES_DIRECTORY}" "${TMP}/cleanup.out"
 test ! -e "$CHANGES_DIRECTORY"
