@@ -170,6 +170,16 @@ export function pullRequestRepositoryUrl(url) {
   return `${new URL(url).origin}/${pullRequestRepository(url)}.git`;
 }
 
+export function reviewIdentity(manifest) {
+  return manifest.pullRequest
+    ? { headRefOid: manifest.pullRequest.headRefOid }
+    : { inputDigest: manifest.inputDigest ?? manifest.patchDigest };
+}
+
+export function reviewCodeRoot(manifest) {
+  return manifest.source?.worktreePath ?? manifest.root;
+}
+
 export function pullRequestComparison(pullRequest) {
   return {
     base: {
@@ -744,7 +754,12 @@ export function findingDigest(findingKey) {
   return sha256(findingKey.trim().split(/\s+/).join(' ').toLowerCase()).slice(0, 12);
 }
 
-export function validateUnverifiedBody(body, confidence) {
+export function validateHeadingConfidence(kind, confidence, body) {
+  if (kind !== 'Unverified') {
+    if (confidence < 75) throw new Error('Findings and questions need confidence of at least 75.');
+    return;
+  }
+
   const prefix = 'Below the confidence threshold. Needs verification: ';
   const paragraph = body.split('\n\n', 2)[1];
   if (confidence < 50 || confidence >= 75 || !paragraph?.startsWith(prefix) ||
@@ -784,12 +799,11 @@ export function validateInlineComments(comments, lineMap) {
       );
     }
 
-    if (heading[1] === 'Unverified') {
-      if (general) throw new Error('Unverified comments need a changed-line anchor.');
-      validateUnverifiedBody(comment.body, Number(heading[2]));
-    } else if (Number(heading[2]) < 75) {
-      throw new Error('Findings and questions need confidence of at least 75.');
+    const [, kind, score] = heading;
+    if (kind === 'Unverified' && general) {
+      throw new Error('Unverified comments need a changed-line anchor.');
     }
+    validateHeadingConfidence(kind, Number(score), comment.body);
 
     if (/\blines?\s+\d+\b/i.test(comment.body)) {
       throw new Error(
@@ -888,7 +902,7 @@ function bundleDeclarations(root) {
 }
 
 export function bundleSkeleton(manifest, groupRoots = []) {
-  const groups = bundleDeclarations(manifest.source?.worktreePath ?? manifest.root);
+  const groups = bundleDeclarations(reviewCodeRoot(manifest));
   const bundles = new Map();
 
   for (const file of manifest.files.filter(isReviewableFile)) {

@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 
-import { fail } from './lib/review-automation.mjs';
+import { fail, reviewCodeRoot, reviewIdentity } from './lib/review-automation.mjs';
 
 const lensByWorker = {
   'code-reviewer.md': 'shaping-lenses.md',
@@ -23,10 +23,8 @@ try {
   const reviewDir = resolve(directory);
   const manifestPath = join(reviewDir, 'manifest.json');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  const codeRoot = manifest.source?.worktreePath ?? manifest.root;
-  const identity = manifest.pullRequest
-    ? { headRefOid: manifest.pullRequest.headRefOid }
-    : { inputDigest: manifest.inputDigest ?? manifest.patchDigest };
+  const codeRoot = reviewCodeRoot(manifest);
+  const identity = reviewIdentity(manifest);
   if (!codeRoot || !Object.values(identity)[0]) {
     throw new Error('Review manifest has no code root or input identity.');
   }
@@ -67,7 +65,7 @@ try {
       `Look up an anchor with: node "${join(skillDir, 'scripts/review-results.mjs')}" anchor "<map>" "<path>" "<LEFT|RIGHT>" "<line>".`,
       'Query the bundle anchor file or line map by location. Keep the full map out of context.',
       'Use the applicable repository standards and list the sources you actually read.',
-      'Return one self-contained final JSON object. Include every result and its metadata in that message.',
+      'Return only one self-contained final JSON object. Put summaries in notes and include every result and its metadata.',
       'For input errors, return an object with inputError and the reason. Otherwise use this result shape:',
       JSON.stringify({ model, ...identity, standards: [], comments: [], notes: [], descriptionNotes: [] }),
       'Put every finding, question, and unverified candidate in comments, with body, findingKey, path, and evidencePaths. Include scope-specific fields from the worker contract.',

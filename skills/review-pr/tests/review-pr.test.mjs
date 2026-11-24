@@ -246,6 +246,11 @@ test('renders canonical prompts and validates individual candidate approvals', (
   const result = { model, headRefOid, standards: [], notes: [], descriptionNotes: [], comments: [candidate, confirmed] };
   writeFileSync(resultPath, 'One finding and one candidate. See previous messages.');
   assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
+  const fencedResult = `\`\`\`json\n${JSON.stringify(result)}\n\`\`\``;
+  writeFileSync(resultPath, `Review complete.\n\n${fencedResult}`);
+  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
+  writeFileSync(resultPath, `${fencedResult}\n\n${fencedResult}`);
+  assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
   writeFileSync(resultPath, JSON.stringify(result));
   assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
   assert.throws(

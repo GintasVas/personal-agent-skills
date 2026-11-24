@@ -4,9 +4,10 @@ import { dirname, isAbsolute, join, resolve } from 'node:path';
 import {
   fail,
   INLINE_COMMENT_HEADING,
+  reviewIdentity,
   serializeJson,
-  validateInlineComments,
-  validateUnverifiedBody
+  validateHeadingConfidence,
+  validateInlineComments
 } from './lib/review-automation.mjs';
 
 function readJson(path) {
@@ -23,12 +24,15 @@ function repoPath(path) {
 
 function readResult(path, manifest, lineMap, expectedModel) {
   const raw = readFileSync(path, 'utf8').trim();
-  const result = JSON.parse(raw.match(/^```(?:json)?\s*\n([\s\S]+)\n```$/)?.[1] ?? raw);
+  const fences = raw.match(/^```/gm);
+  const block = fences?.length === 2
+    ? raw.match(/(?:^|\n)```(?:json)?[ \t]*\r?\n([\s\S]+)\r?\n```$/)
+    : null;
+  const result = JSON.parse(block?.[1] ?? raw);
   if (hasText(result?.inputError)) throw new Error(result.inputError);
 
-  const identity = manifest.pullRequest?.headRefOid ?? manifest.inputDigest ?? manifest.patchDigest;
-  const reportedIdentity = manifest.pullRequest ? result?.headRefOid : result?.inputDigest;
-  if (!identity || reportedIdentity !== identity || !hasText(result.model) ||
+  const [identityKey, identity] = Object.entries(reviewIdentity(manifest))[0];
+  if (!identity || result?.[identityKey] !== identity || !hasText(result.model) ||
     (expectedModel && result.model !== expectedModel) ||
     !Array.isArray(result.comments) || !['standards', 'notes', 'descriptionNotes'].every(
       (key) => Array.isArray(result[key]) && result[key].every(hasText)
@@ -47,12 +51,8 @@ function readResult(path, manifest, lineMap, expectedModel) {
     }
     const [, kind, score] = heading;
     const candidate = kind === 'Unverified';
-    if (candidate) {
-      candidates += 1;
-      validateUnverifiedBody(item.body, Number(score));
-    } else if (Number(score) < 75) {
-      throw new Error('Findings and questions need confidence of at least 75.');
-    }
+    if (candidate) candidates += 1;
+    validateHeadingConfidence(kind, Number(score), item.body);
     if (lineMap && !(candidate && item.anchor === 'none')) postable.push(item);
   }
   if (candidates > 3) throw new Error('Return at most three unverified candidates.');
@@ -92,7 +92,7 @@ function approvedComments(selection, manifest, lineMap, directory) {
       new Set(modelSlugs).size !== modelSlugs.length) {
       throw new Error(`Approved entry ${entryKey} needs its reporting model and any supporting selected models.`);
     }
-    if (item.body.startsWith('**[Unverified]')) candidates += 1;
+    if (item.body.match(INLINE_COMMENT_HEADING)[1] === 'Unverified') candidates += 1;
     return { ...item, findingKey: findingKey ?? item.findingKey, modelSlugs };
   });
   if (candidates > 3) throw new Error('Approve at most three unverified candidates per review.');
