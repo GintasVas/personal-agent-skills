@@ -61,9 +61,14 @@ Reject incidental similarity and speculative or cross-domain abstractions.
 Score confidence in behavior preservation and in the stated gain from 0 to
 100. Use the lower score. Report only findings with confidence >= 75.
 
-- 75. The reviewed code and nearby evidence support a safe, worthwhile refactor.
-- 90. Strong repo evidence supports behavior preservation and the gain.
-- 100. Direct evidence establishes behavior preservation and the gain.
+| Score | Evidence |
+| --- | --- |
+| 0 | The proposal changes behavior, offers no gain, or falls outside scope. |
+| 25 | The proposal is plausible, with little evidence of gain or behavior preservation. |
+| 50 | Some evidence supports the proposal, but a key assumption about gain or behavior remains unverified. |
+| 75 | The reviewed code and nearby evidence support a safe, worthwhile refactor. |
+| 90 | Strong repo evidence supports behavior preservation and the gain. |
+| 100 | Direct evidence establishes behavior preservation and the gain. |
 
 ## Output
 
