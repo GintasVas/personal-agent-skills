@@ -20,101 +20,31 @@ test -f "$VERIFY"
 test -f "$CLEANUP"
 test ! -f "${SKILL_DIR}/../code-simplifier/SKILL.md"
 
-grep -Fq 'name: simplify-code' "$ORCHESTRATOR"
-grep -Fq 'disable-model-invocation: true' "$ORCHESTRATOR"
-grep -Fq '/simplify-code' "$ORCHESTRATOR"
-grep -Fq 'mixed responsibilities, extension seams, duplication, and inconsistent patterns' "$ORCHESTRATOR"
-grep -Fq '<this-skill-dir>/agents/code-simplifier.md' "$ORCHESTRATOR"
-grep -Fq 'Repeat `--model` for multiple workers.' "$ORCHESTRATOR"
-grep -Fq 'Run the bundled scripts at the steps below.' "$ORCHESTRATOR"
-grep -Fq 'Do not inspect script source.' "$ORCHESTRATOR"
-grep -Fq 'detached head worktree' "$ORCHESTRATOR"
-grep -Fq 'For bundled PRs, pass `review-index.json` and `source`.' "$ORCHESTRATOR"
-grep -Fq '`patch.diff`, `line-map.json`, `manifest.json`, and `source`.' "$ORCHESTRATOR"
-grep -Fq 'The parent does not read the global line map.' "$ORCHESTRATOR"
-grep -Fq '## Scope large reviews' "$ORCHESTRATOR"
-grep -Fq 'For a review with more than 10 changed files or 500 changed lines' "$ORCHESTRATOR"
-grep -Fq 'bundles instead of the full patch.' "$ORCHESTRATOR"
-grep -Fq 'reviewable hunk.' "$ORCHESTRATOR"
-grep -Fq 'new shared module with only the changed importers' "$ORCHESTRATOR"
-grep -Fq 'use bounded' "$ORCHESTRATOR"
-grep -Fq 'build-review-bundles.mjs' "$ORCHESTRATOR"
-grep -Fq 'Give all verified bundles to every model.' "$ORCHESTRATOR"
-grep -Fq 'Synthesize without discovering new findings.' "$ORCHESTRATOR"
-grep -Fq "Use the canonical finding's original wording and heading." "$ORCHESTRATOR"
-grep -Fq '"selectedModels": ["<exact slug>", "<exact slug>"]' "$ORCHESTRATOR"
-grep -Fq '"modelSlugs": ["<exact slug>"]' "$ORCHESTRATOR"
-grep -Fq 'Omit the `Found by` footer and finding markers from `body`.' "$ORCHESTRATOR"
-grep -Fq '<this-skill-dir>/agents/code-simplifier.md' "$ORCHESTRATOR"
-grep -Fq 'Put its contract and' "$ORCHESTRATOR"
-grep -Fq 'Copy all sections of [simplification-lenses.md]' "$ORCHESTRATOR"
-grep -Fq 'Pass the prompt directly without' "$ORCHESTRATOR"
-grep -Fq '/skill:simplify-code' "$ORCHESTRATOR"
-grep -Fq 'Before any other tool call, read only the host file' "$ORCHESTRATOR"
-for host in pi cursor-desktop cursor-cli codex other; do
-  test -f "${SKILL_DIR}/hosts/${host}.md"
-  grep -Fq "](hosts/${host}.md)" "$ORCHESTRATOR"
+LENSES="$SKILL_DIR/simplification-lenses.md"
+for text in 'name: simplify-code' 'disable-model-invocation: true' '/skill:simplify-code' \
+  '<this-skill-dir>/agents/code-simplifier.md' '[simplification-lenses.md](simplification-lenses.md), including Common.' \
+  'whole-file manifest for the selected scope.' 'digest differs.' \
+  'Reply "post all", "post 1,3", or "post none".'; do
+  grep -Fq "$text" "$ORCHESTRATOR"
 done
-if grep -Fq 'Use the Cursor runner below when a subagent' "$ORCHESTRATOR"; then
-  echo "expected desktop Cursor to use native delegation" >&2
-  exit 1
-fi
-grep -Fq 'with the absolute path to this skill directory' "$ORCHESTRATOR"
-grep -Fq '{ model: "<exact slug>", reviewerId: "pending", status: "planned" }' "$ORCHESTRATOR"
-grep -Fq 'Reviewer model: <exact slug>' "$ORCHESTRATOR"
-grep -Fq 'Keep one private job per selected model, in selection order:' "$ORCHESTRATOR"
-grep -Fq 'Keep counts and the job list out of successful output.' "$ORCHESTRATOR"
-grep -Fq 'Stop synthesis if a launch or result fails or is missing.' "$ORCHESTRATOR"
-grep -Fq 'present the review as complete.' "$ORCHESTRATOR"
-if grep -Fq 'Expected <N> reviewers; launched <N>: <exact slugs>.' "$ORCHESTRATOR"; then
-  echo "expected launch counts only for failed simplifier launches" >&2
-  exit 1
-fi
-if grep -Fq 'AskQuestion' "$ORCHESTRATOR"; then
-  echo "expected simplify-code to delegate model selection to its host guidance" >&2
-  exit 1
-fi
-grep -Fq 'Selected: <exact slug>.' "$ORCHESTRATOR"
-grep -Fq 'Use each hunk or whole file as a' "$WORKER"
-grep -Fq '| Bundled PR | Detached head `source` and review index with `headRefOid` |' "$WORKER"
-grep -Fq '| Small PR | Detached head `source`, patch, line map, and manifest with `headRefOid` |' "$WORKER"
-grep -Fq 'Use `source` as the only PR code root.' "$WORKER"
-grep -Fq 'A diff alone cannot prove that a helper, export,' "$WORKER"
-grep -Fq 'anchor file or line map.' "$WORKER"
-grep -Fq 'Return an input error if anything the selected scope requires is missing.' "$WORKER"
-grep -Fq 'Read all supplied hunks. For paths scope, read each whole-file snapshot' "$WORKER"
-grep -Fq '| Current changes | Caller repo root, patch, and patch digest |' "$WORKER"
-grep -Fq '| Paths | Caller repo root, whole-file manifest, and input digest |' "$WORKER"
-grep -Fq 'Reconcile interactions across units.' "$WORKER"
-grep -Fq 'Record `finding`, `no finding`, or `candidate under verification`' "$WORKER"
-grep -Fq 'privately for each unit.' "$WORKER"
-grep -Fq 'Record why each `no finding` unit has no worthwhile simplification.' "$WORKER"
-grep -Fq 'Return `No findings.` only after resolving every' "$WORKER"
-grep -Fq 'behavior-preserving simplification' "$WORKER"
-grep -Fq 'Avoid broad searches.' "$WORKER"
-grep -Fq 'Classify boundary adaptation and composition' "$WORKER"
-grep -Fq 'Length and member count alone are insufficient.' "$WORKER"
-grep -Fq 'Keep entrypoints and adapters focused' "$WORKER"
-grep -Fq '### Frontend' "$WORKER"
-grep -Fq "hook's reactive coordination within one concern." "$WORKER"
-grep -Fq 'move JSX, callbacks, or small helpers just to shorten a file.' "$WORKER"
-grep -Fq 'Preserve cohesive state machines.' "$WORKER"
-grep -Fq 'owned responsibilities, extraction targets, and dependency' "$WORKER"
-grep -Fq 'SOLID' "$WORKER"
-grep -Fq 'A second caller or planned feature is optional.' "$WORKER"
-grep -Fq 'Policy likely to vary at a stable boundary.' "$WORKER"
-grep -Fq 'Explain how the seam keeps change local.' "$WORKER"
-grep -Fq 'confidence >= 75' "$WORKER"
-grep -Fq 'P0 removes a recurring architectural or repository-wide barrier.' "$WORKER"
-grep -Fq '| `Delete` | In-scope code that a proposed simplification makes obsolete. |' "$WORKER"
-grep -Fq 'Exclude bugs, security issues, performance defects,' "$WORKER"
-grep -Fq 'Reply "post all", "post 1,3", or "post none".' "$ORCHESTRATOR"
-grep -Fq '**[P1] - Extract - confidence 92:**' "$WORKER"
-grep -Fq 'postable without changes.' "$WORKER"
-grep -Fq 'likely variation and evidence from changed code' "$WORKER"
-grep -Fq 'For local review, run one command.' "$ORCHESTRATOR"
-grep -Fq 'For a PR, prepare the pinned input.' "$ORCHESTRATOR"
-grep -Fq 'For a PR, verify the pinned input before presenting.' "$ORCHESTRATOR"
+for text in '| Bundled PR | Detached head `source` and review index with `headRefOid` |' \
+  '| Small PR | Detached head `source`, patch, line map, and manifest with `headRefOid` |' \
+  '| Current changes | Caller repo root, patch, and patch digest |' \
+  '| Paths | Caller repo root, whole-file manifest, and input digest |' \
+  'Return an input error if required input or any materialized bundle is missing.' \
+  'Read every supplied hunk or whole-file snapshot for paths scope.' \
+  'Reconcile interactions across units.' 'Verify absence in the code root.' \
+  'Return `No findings.` only after checking all units and resolving candidates.' \
+  'cohesive state machines.' 'Check interchangeability' 'likely variation' \
+  'A second caller or planned feature is optional.' 'lower score is >= 75' \
+  'Rank by the size, reach, and recurrence of the gain.' '| `Delete` | Remove in-scope code the refactor makes obsolete. |' \
+  'Exclude bugs, security and performance defects, test gaps, product logic,' \
+  '**[P1] - Extract - confidence 92:**' 'anchor file or line map.' 'Unrelated discovered issue.'; do
+  grep -Fq "$text" "$WORKER"
+done
+grep -Fq 'focused hooks for reusable reactive work.' "$LENSES"
+grep -Fq 'distinct semantic or behavioral' "$LENSES"
+diff -u <(grep '^## ' "$SKILL_DIR/workflow.md") <(grep '^## ' "$ORCHESTRATOR")
 grep -Fq "'--diff-algorithm=myers'" "$LOCAL_PREPARE"
 grep -Fq "'--no-indent-heuristic'" "$LOCAL_PREPARE"
 grep -Fq "'--unified=3'" "$LOCAL_PREPARE"

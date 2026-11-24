@@ -452,97 +452,41 @@ test -d "$FRESH_DIRECTORY"
 test -d "$UNMARKED_STALE_DIRECTORY"
 rm -rf "$FRESH_DIRECTORY" "$UNMARKED_STALE_DIRECTORY"
 
-for skill in "$SIMPLIFY" "$REVIEW"; do
-  grep -Fq 'prepare-pr-review-input.mjs prepare' "$skill"
-  grep -Fq 'prepare-pr-review-input.mjs verify' "$skill"
-  grep -Fq 'build-review-bundles.mjs' "$skill"
-  grep -Fq 'post-inline-pr-comments.mjs' "$skill"
-  grep -Fq 'cleanup-review-input.mjs' "$skill"
-  grep -Fq 'standard input' "$skill"
-  grep -Fq '"findingKey": "<location and mechanism>"' "$skill"
-  grep -Fq 'Reuse the approved payload on retry.' "$skill"
-  grep -Fq 'Bundle a new shared module with only the changed' "$skill"
-  grep -Fq 'bounded' "$skill"
+WORKFLOW="$SKILL_DIR/workflow.md"
+SPEC="$SKILL_DIR/../spec-audit-pr/SKILL.md"
+
+for skill in "$REVIEW" "$SIMPLIFY" "$SPEC"; do
+  cmp "$WORKFLOW" "$(dirname "$skill")/workflow.md"
+  diff -u <(grep '^## ' "$WORKFLOW") <(grep '^## ' "$skill")
+  for section in select-models prepare-input scope-large-reviews run-reviewers verify-and-report post-approved-findings cleanup; do
+    grep -Fq "(workflow.md#$section)" "$skill"
+  done
+  for host in pi cursor-desktop cursor-cli codex other; do
+    test -f "$(dirname "$skill")/hosts/$host.md"
+  done
 done
 
-grep -Fq 'approved findings as one JSON object' "$REVIEW"
-grep -Fq 'send `anchor: "none"` and omit `line` and `side`.' "$REVIEW"
-grep -Fq '"anchor": "<full changed line>"' "$REVIEW"
-grep -Fq 'Return `headRefOid` with the results.' "$REVIEWER"
-grep -Fq 'lint, formatting, source style, and missing' "$REVIEWER"
-grep -Fq 'lockfiles.' "$REVIEWER"
-grep -Fq '**[P1] - Correctness - confidence 92:**' "$REVIEWER"
-grep -Fq 'must be postable without changes' "$REVIEWER"
-grep -Fq 'Keep source line numbers out of bodies.' "$REVIEWER"
-grep -Fq 'Use detached head `source` as the only code root.' "$REVIEWER"
-grep -Fq 'Bundles use `review-index.json` and each bundle' "$REVIEWER"
-grep -Fq 'A diff alone cannot prove that a helper, export, or pattern is missing.' "$REVIEWER"
-grep -Fq 'the full changed line from the' "$REVIEWER"
-grep -Fq 'anchor file or line map.' "$REVIEWER"
-grep -Fq 'Return an input error if any materialized bundle is missing.' "$REVIEWER"
-grep -Fq 'Read every supplied hunk once.' "$REVIEWER"
-grep -Fq 'Small PRs use the complete `patch.diff`, `line-map.json`, and `manifest.json`.' "$REVIEWER"
-grep -Fq 'After reading all hunks' "$REVIEWER"
-grep -Fq 'reconcile interactions across' "$REVIEWER"
-grep -Fq 'Trace changed public interfaces and data flow' "$REVIEWER"
-grep -Fq 'Record an internal disposition for every changed reviewable hunk' "$REVIEWER"
-grep -Fq 'trace execution and the external state that the invoked code uses.' "$REVIEWER"
-grep -Fq 'Return `No findings.` only after resolving all hunk' "$REVIEWER"
-grep -Fq 'Selected: <exact slug>.' "$REVIEW"
-grep -Fq 'Run the bundled scripts at the steps below.' "$REVIEW"
-grep -Fq 'Do not inspect script source.' "$REVIEW"
-grep -Fq 'If prepare fails or does not report `directory`, report the failure and stop.' "$REVIEW"
-grep -Fq 'Do not construct substitute patches, manifests, line maps, or bundles.' "$REVIEW"
-grep -Fq 'For bundled PRs, pass `review-index.json` and `source`.' "$REVIEW"
-grep -Fq '`patch.diff`, `line-map.json`, `manifest.json`, and `source`.' "$REVIEW"
-grep -Fq 'The parent does not read the global line map.' "$REVIEW"
-grep -Fq 'Give all verified bundles to every model.' "$REVIEW"
-grep -Fq '"path": "<path>"' "$REVIEW"
-grep -Fq 'with the absolute path to this skill directory' "$REVIEW"
-grep -Fq '<this-skill-dir>/agents/code-reviewer.md' "$REVIEW"
-grep -Fq 'Put its contract and' "$REVIEW"
-grep -Fq 'Copy all sections of [shaping-lenses.md]' "$REVIEW"
-grep -Fq '/skill:review-pr' "$REVIEW"
-for host in pi cursor-desktop cursor-cli codex other; do
-  test -f "${SKILL_DIR}/hosts/${host}.md"
-  grep -Fq "](hosts/${host}.md)" "$REVIEW"
+for text in 'prepare-pr-review-input.mjs prepare' 'prepare-pr-review-input.mjs verify' \
+  'build-review-bundles.mjs' 'verify-review-bundles.mjs' 'post-inline-pr-comments.mjs' \
+  'cleanup-review-input.mjs' 'one JSON object on standard input' \
+  'Give every model all verified bundles' 'one attributable launch and one complete result' \
+  'If verification fails, report the actual reason.' 'Post only what the user explicitly approved.' \
+  'on retry.' 'Synthesize without discovering new findings.' 'Reviewer model: <exact slug>' \
+  'Selected: <exact slug>.' 'Repeat `--model`' 'set `anchor: "none"` and omit `line` and `side`.'; do
+  grep -Fq "$text" "$WORKFLOW"
 done
-grep -Fq 'Before any other tool call, read only the host file' "$REVIEW"
-if grep -Fq 'Use the Cursor runner below when a subagent' "$REVIEW"; then
-  echo "expected desktop Cursor to use native delegation" >&2
-  exit 1
-fi
-grep -Fq 'Pass the prompt directly without' "$REVIEW"
-grep -Fq '{ model: "<exact slug>", reviewerId: "pending", status: "planned" }' "$REVIEW"
-grep -Fq 'Reviewer model: <exact slug>' "$REVIEW"
-grep -Fq 'Keep one private job per selected model, in selection order:' "$REVIEW"
-grep -Fq 'Keep counts and the job list out of successful output.' "$REVIEW"
-grep -Fq 'Stop synthesis if a launch or result fails or is missing.' "$REVIEW"
-grep -Fq 'present the review as complete.' "$REVIEW"
-if grep -Fq 'Expected <N> reviewers; launched <N>: <exact slugs>.' "$REVIEW"; then
-  echo "expected launch counts only for failed reviewer launches" >&2
-  exit 1
-fi
-grep -Fq 'Synthesize without discovering new findings.' "$REVIEW"
-grep -Fq 'Merge reports only when the location and mechanism match.' "$REVIEW"
-grep -Fq '"selectedModels": ["<exact slug>", "<exact slug>"]' "$REVIEW"
-grep -Fq '"modelSlugs": ["<exact slug>"]' "$REVIEW"
-grep -Fq 'Omit the `Found by` footer and finding markers from `body`.' "$REVIEW"
-grep -Fq 'withModelAttribution' "$POST"
-grep -Fq 'Never post' "$REVIEW"
-if grep -Fq 'AskQuestion' "$REVIEW"; then
-  echo "expected review-pr to delegate model selection to its host guidance" >&2
-  exit 1
-fi
-if grep -Fq '[P1, confidence 85]:' "$REVIEW"; then
-  echo "expected review-pr posting instructions to use the validated format" >&2
-  exit 1
-fi
-if grep -Fq 'Recommended' "$SIMPLIFY"; then
-  echo "expected simplify-code model labels to use exact slugs" >&2
-  exit 1
-fi
-if grep -Fq 'subagent_type: code-reviewer' "$REVIEW"; then
-  echo "expected review-pr to use its bundled agent instructions" >&2
-  exit 1
-fi
+
+for text in '<this-skill-dir>/agents/code-reviewer.md' '[shaping-lenses.md](shaping-lenses.md), including Common.' \
+  'including for spec-only PRs.' 'when location and mechanism match.' \
+  'Exclude design alternatives.' '/skill:review-pr'; do
+  grep -Fq "$text" "$REVIEW"
+done
+
+for text in 'Use detached head `source` as the only code root.' 'Read every supplied hunk.' \
+  'Reconcile interactions across hunks.' 'Return `No findings.` only after checking all hunks and resolving candidates.' \
+  'Return an input error if required input or any bundle is missing.' 'trace execution and the external state' \
+  'Verify absence in the code root.' 'mechanical CI checks' 'lint, formatting, source style, and missing lockfiles.' \
+  'Do not invoke a review skill or delegate any part.' 'Return `headRefOid`' \
+  '**[P1] - Correctness - confidence 92:**' 'anchor file or' 'Unrelated discovered issue.'; do
+  grep -Fq "$text" "$REVIEWER"
+done

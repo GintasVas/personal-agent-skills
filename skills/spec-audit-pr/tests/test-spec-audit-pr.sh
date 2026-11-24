@@ -8,6 +8,7 @@ LOCAL_PREPARE="${SKILL_ROOT}/scripts/prepare-local-spec-input.mjs"
 CLEANUP="${SKILL_ROOT}/scripts/cleanup-review-input.mjs"
 ORCHESTRATOR="${SKILL_ROOT}/SKILL.md"
 WORKER="${SKILL_ROOT}/agents/spec-reviewer.md"
+WORKFLOW="${SKILL_ROOT}/workflow.md"
 
 check "change-level and naming results use existing repository files" \
   python3 - "${RUNNER}" "${temp_dir}/anchors" <<'PY'
@@ -59,7 +60,7 @@ check "skill pins OpenSpec version" has '@fission-ai/openspec@1.6.0' "${ORCHESTR
 check "skill does not invoke latest OpenSpec" \
   bash -c "! grep -Eq 'npx .*@latest' \"${ORCHESTRATOR}\""
 check "skill hard-excludes explicit non-goals" \
-  has 'non-goals are hard scope exclusions' "${ORCHESTRATOR}"
+  has 'Exclude explicit non-goals from findings, questions, and' "${SKILL_ROOT}/REFERENCE.md"
 check "skill links bundled reference files" \
   bash -c "grep -Fq '[\`LANES.md\`](LANES.md)' \"${ORCHESTRATOR}\" && grep -Fq '[\`REFERENCE.md\`](REFERENCE.md)' \"${ORCHESTRATOR}\""
 check "reference defines coverage passes" \
@@ -88,36 +89,36 @@ check "spec docs drop legacy severity names" \
 check "skill requires explicit invocation" has 'disable-model-invocation: true' "${ORCHESTRATOR}"
 HOSTS="${SKILL_ROOT}/hosts"
 check "skill reads its host file before tools" \
-  has 'Before any other tool call, read only the host file' "${ORCHESTRATOR}"
+  has 'Before running commands, read only the matching host guide:' "${WORKFLOW}"
 for host in pi cursor-desktop cursor-cli codex other; do
   check "skill links the ${host} host file" \
-    bash -c "test -f '${HOSTS}/${host}.md' && grep -Fq '](hosts/${host}.md)' '${ORCHESTRATOR}'"
+    bash -c "test -f '${HOSTS}/${host}.md' && grep -Fq '](hosts/${host}.md)' '${WORKFLOW}'"
 done
-check "skill supports repeated models" has 'Repeat `--model` for multiple workers.' "${ORCHESTRATOR}"
-check "skill echoes selected slugs" has 'Selected: <exact slug>.' "${ORCHESTRATOR}"
+check "skill supports repeated models" has 'Repeat `--model`' "${WORKFLOW}"
+check "skill echoes selected slugs" has 'Selected: <exact slug>.' "${WORKFLOW}"
 check "skill stays host-neutral" \
   bash -c "! grep -Fq AskQuestion '${ORCHESTRATOR}'"
 check "skill supports Pi" has '/skill:spec-audit-pr' "${ORCHESTRATOR}"
 check "skill loads the spec-reviewer contract" \
   has '<this-skill-dir>/agents/spec-reviewer.md' "${ORCHESTRATOR}"
 check "skill tracks reviewer jobs" \
-  has '{ model: "<exact slug>", reviewerId: "pending", status: "planned" }' "${ORCHESTRATOR}"
-check "skill pins reviewer model in prompt" has 'Reviewer model: <exact slug>' "${ORCHESTRATOR}"
-check "skill keeps the parent out of review" has 'The parent does not review.' "${ORCHESTRATOR}"
+  has 'Keep one private job per selected model in selection order.' "${WORKFLOW}"
+check "skill pins reviewer model in prompt" has 'Reviewer model: <exact slug>' "${WORKFLOW}"
+check "skill keeps the parent out of review" has 'The parent does not review.' "${WORKFLOW}"
 check "skill synthesizes without new findings" \
-  has 'Synthesize without discovering new findings.' "${ORCHESTRATOR}"
+  has 'Synthesize without discovering new findings.' "${WORKFLOW}"
 check "skill asks which findings to post" \
   has 'Reply "post all", "post findings", "post 1,3", or "post none".' "${ORCHESTRATOR}"
 check "skill passes model attribution" \
-  has '"selectedModels": ["<exact slug>", "<exact slug>"]' "${ORCHESTRATOR}"
+  has '"selectedModels": ["<exact slug>", "<exact slug>"]' "${WORKFLOW}"
 check "skill verifies PR input before posting" \
-  has 'prepare-pr-review-input.mjs verify' "${ORCHESTRATOR}"
-check "skill posts through validated script" has 'post-inline-pr-comments.mjs' "${ORCHESTRATOR}"
+  has 'prepare-pr-review-input.mjs verify' "${WORKFLOW}"
+check "skill posts through validated script" has 'post-inline-pr-comments.mjs' "${WORKFLOW}"
 check "skill lets the user exclude review questions" \
-  has '`post findings` excludes review questions.' "${ORCHESTRATOR}"
-check "skill keeps coverage notes in chat" has 'Coverage notes stay in chat.' "${ORCHESTRATOR}"
-check "skill verifies before presenting" has '## Verify, present, and post' "${ORCHESTRATOR}"
-check "skill cleans review input" has 'cleanup-review-input.mjs' "${ORCHESTRATOR}"
+  has '`post findings` excludes' "${ORCHESTRATOR}"
+check "skill keeps coverage notes in chat" has 'unnumbered in chat.' "${ORCHESTRATOR}"
+check "skill verifies before presenting" has '(workflow.md#verify-and-report)' "${ORCHESTRATOR}"
+check "skill cleans review input" has 'cleanup-review-input.mjs' "${WORKFLOW}"
 
 check "reviewer is read-only" has 'readonly: true' "${WORKER}"
 check "reviewer uses review-pr heading format" \
@@ -126,12 +127,14 @@ check "reviewer reports only confident findings" has 'confidence >= 75' "${WORKE
 check "reviewer runs every lane" has 'Run Lane A, then B, then C' "${WORKER}"
 check "reviewer applies the evidence gate" has 'evidence gate and falsification pass' "${WORKER}"
 check "reviewer leaves structural rules to the parent" \
-  has 'S001 through S902. The parent uses the validator' "${WORKER}"
+  has 'The parent owns structural results (S001 through S902).' "${WORKER}"
 check "reviewer does not receive structural reports" lacks 'audit_structure.py' "${WORKER}"
-check "reviewer anchors to changed lines" has 'LEFT or RIGHT side, and the full changed line as anchor.' "${WORKER}"
-check "reviewer comments are postable" has 'postable without changes' "${WORKER}"
-check "reviewer resolves every disposition" \
-  has 'Return `No findings.` only after resolving every requirement disposition.' "${WORKER}"
+check "reviewer anchors to changed lines" has 'RIGHT side, and full changed line from the anchor file or line map.' "${WORKER}"
+check "reviewer comments are postable" has 'and body postable.' "${WORKER}"
+check "reviewer checks every requirement" \
+  has 'Return `No findings.` only after checking all requirements and resolving' "${WORKER}"
+check "reviewer performs the audit directly" \
+  has 'Do not invoke a review skill or delegate any part.' "${WORKER}"
 
 check "reviewer headings match posting validator" \
   node --input-type=module -e "
@@ -210,19 +213,19 @@ EOF
 check "structural findings reject both a line map and a manifest" \
   bash -c "! node '${SKILL_ROOT}/scripts/structural-findings.mjs' --line-map '${temp_dir}/line-map.json' \
     --manifest '${temp_dir}/targets.json' '${temp_dir}/structure-invalid.json' > /dev/null 2>&1"
-check "skill separates audit targets from context" has 'Targets get findings.' "${ORCHESTRATOR}"
+check "skill separates audit targets from context" has 'Use `contextFiles` as authority.' "${ORCHESTRATOR}"
 check "large PRs bundle non-OpenSpec hunks as context" \
-  bash -c "grep -Fq 'one bundle named' '${ORCHESTRATOR}' && grep -Fq '\`context\` bundle, are conformance context.' '${WORKER}'"
+  has 'Put other hunks in a bundle named `context` for conformance' "${ORCHESTRATOR}"
 check "default scope audits what differs from the base branch" \
   has 'prepare-local-spec-input.mjs changed' "${ORCHESTRATOR}"
 check "local audits select one prepare command" \
-  has 'For a local audit, run one command.' "${ORCHESTRATOR}"
+  has 'For a local audit, run the command for the selected scope:' "${ORCHESTRATOR}"
 check "PR preparation has its own scope" \
-  has 'For a PR, prepare the pinned input.' "${ORCHESTRATOR}"
+  has 'prepare-pr-review-input.mjs prepare "<PR>"' "${WORKFLOW}"
 check "reviewer treats context main specs as authority only" \
-  has '`contextFiles` are the main specs those targets build on' "${WORKER}"
+  has 'Use `contextFiles`, context hunks, and unchanged main specs only' "${WORKER}"
 check "conformance runs only for main spec targets" \
-  has 'only for the named main spec' "${WORKER}"
+  has 'Run conformance only on named main spec' "${WORKER}"
 
 local_repo="${temp_dir}/local-repo"
 mkdir -p \
