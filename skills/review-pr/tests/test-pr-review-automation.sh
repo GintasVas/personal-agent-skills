@@ -81,6 +81,11 @@ if [[ "${arguments[0]:-}" == "fetch" ]]; then
   exit 0
 fi
 
+if [[ "${arguments[0]:-}" == "merge-base" ]]; then
+  printf '%s\n' 'mergebase012345'
+  exit 0
+fi
+
 if [[ "${arguments[0]:-}" == "diff" && " ${arguments[*]} " == *" --name-only "* ]]; then
   if [[ " ${arguments[*]} " == *"..."* ]]; then
     printf '%s\0' src/example.ts docs/example.md
@@ -178,7 +183,7 @@ export POSTED_COMMENT="${TMP}/posted-comment.json"
 export REAL_GIT
 write_pull_request() {
   cat > "$GH_PR_JSON" <<JSON
-{"number":42,"baseRefName":"${3:-feature/parent}","baseRefOid":"$1","headRefName":"feature/child","headRefOid":"${2:-0123456789abcdef}","url":"https://github.com/example-org/example/pull/42","title":"${4:-Fixture title}","body":"Fixture body"}
+{"number":42,"baseRefName":"${3:-feature/parent}","baseRefOid":"$1","headRefName":"feature/child","headRefOid":"${2:-0123456789abcdef}","url":"https://github.com/example-org/example/pull/42","title":"${4:-Fixture title}","body":"Fixture body","closingIssuesReferences":[{"number":41,"url":"https://github.com/example-org/example/issues/41"}]}
 JSON
 }
 
@@ -206,6 +211,12 @@ REVIEW_DIRECTORY="$(awk -F= '/^directory=/{ print $2 }' "${TMP}/prepare.out")"
 grep -Fq "directory=${REVIEW_DIRECTORY}" "${TMP}/prepare.out"
 grep -Fq 'baseRefName=feature/parent' "${TMP}/prepare.out"
 grep -Fq 'baseRefOid=base0123456789' "${TMP}/prepare.out"
+grep -Fxq 'mergeBaseOid=mergebase012345' "${TMP}/prepare.out"
+grep -Fxq "description=${REVIEW_DIRECTORY}/pr-description.json" "${TMP}/prepare.out"
+grep -Fxq "linkedIssues=${REVIEW_DIRECTORY}/linked-issues.json" "${TMP}/prepare.out"
+jq -e '.[0].number == 41 and (.[0].url | endswith("/issues/41"))' "${REVIEW_DIRECTORY}/linked-issues.json" >/dev/null
+grep -Fxq "changedPaths=${REVIEW_DIRECTORY}/changed-paths.json" "${TMP}/prepare.out"
+grep -Fxq 'changedPathsPreview=["src/example.ts","docs/example.md"]' "${TMP}/prepare.out"
 grep -Fq 'headRefName=feature/child' "${TMP}/prepare.out"
 grep -Fq 'headRefOid=0123456789abcdef' "${TMP}/prepare.out"
 grep -Fq "source=${REVIEW_DIRECTORY}/source" "${TMP}/prepare.out"
@@ -417,6 +428,8 @@ write_pull_request base0123456789
 FAKE_EXTRA_FILES=310 node "$PREPARE" prepare 42 > "${TMP}/large-prepare.out"
 grep -Fxq 'files=312' "${TMP}/large-prepare.out"
 LARGE_DIRECTORY="$(awk -F= '/^directory=/{ print $2 }' "${TMP}/large-prepare.out")"
+sed -n 's/^changedPathsPreview=//p' "${TMP}/large-prepare.out" | jq -e 'length == 10' >/dev/null
+jq -e 'length == 312 and .[-1] == "extra/file-310.md"' "${LARGE_DIRECTORY}/changed-paths.json" >/dev/null
 jq '.comments[0] += {path:"extra/file-310.md",line:1,anchor:"after"}' "${TMP}/comments.json" > "${TMP}/large-comment.json"
 FAKE_EXTRA_FILES=310 node "$POST" 42 0123456789abcdef "${LARGE_DIRECTORY}/manifest.json" "${TMP}/large-comment.json" \
   > "${TMP}/large-post.out"

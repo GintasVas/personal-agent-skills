@@ -13,7 +13,18 @@ the supported slugs.
 ## Launch reviewers
 
 Use native `generalPurpose` when it can pin the exact model. Stop if exact
-selection is unavailable. Give it the rendered prompt and pinned code root.
-Use read-only mode where available and enforce the worker's read-only contract
-in the prompt. Save its full final message as the result. Launch concurrently
-where supported. Do not invoke Cursor CLI from the desktop GUI.
+selection is unavailable. Give it the pinned code root and say "Read
+`<absolute prompt path>` and follow it exactly."
+Use read-only mode. If the host can grant a single-file write exception, direct
+the worker to put its final JSON in the exact numbered result file.
+
+Otherwise prefer native final-message capture. For a known transcript from
+this subagent, use:
+
+```bash
+node <this-skill-dir>/scripts/review-results.mjs capture "$REVIEW_DIR/manifest.json" \
+  "<subagent JSONL>" "$REVIEW_DIR/reviewer-1.result" "<exact slug>"
+```
+
+If capture fails, save the worker's complete final message verbatim. Launch
+concurrently where supported. Do not invoke Cursor CLI from the desktop GUI.

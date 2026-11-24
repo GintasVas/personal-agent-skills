@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import {
   fail,
   INLINE_COMMENT_HEADING,
+  requiredReviewStandards,
   reviewIdentity,
   serializeJson,
   validateHeadingConfidence,
@@ -22,8 +23,16 @@ function repoPath(path) {
   return hasText(path) && !isAbsolute(path) && !path.split('/').includes('..');
 }
 
-function readResult(path, manifest, lineMap, expectedModel) {
-  const raw = readFileSync(path, 'utf8').trim();
+function loadPinnedInput(manifestPath) {
+  const manifest = readJson(manifestPath);
+  const lineMap = manifest.lineMapPath && readJson(manifest.lineMapPath);
+  if (manifest.pullRequest && !lineMap) throw new Error('The PR manifest needs its pinned line map.');
+  const directory = dirname(resolve(manifestPath));
+  return { manifest, lineMap, directory, standards: requiredReviewStandards(directory, manifest) };
+}
+
+function readResult(text, { manifest, lineMap, standards }, expectedModel) {
+  const raw = text.trim();
   const fences = raw.match(/^```/gm);
   const block = fences?.length === 2
     ? raw.match(/(?:^|\n)```(?:json)?[ \t]*\r?\n([\s\S]+)\r?\n```$/)
@@ -38,6 +47,10 @@ function readResult(path, manifest, lineMap, expectedModel) {
       (key) => Array.isArray(result[key]) && result[key].every(hasText)
     )) {
     throw new Error('Result needs the exact model, pinned input identity, comments, standards, and notes.');
+  }
+  const missingStandards = standards.filter((path) => !result.standards.includes(path));
+  if (missingStandards.length) {
+    throw new Error(`Reviewer did not report reading required standards: ${missingStandards.join(', ')}`);
   }
 
   let candidates = 0;
@@ -60,7 +73,8 @@ function readResult(path, manifest, lineMap, expectedModel) {
   return result;
 }
 
-function approvedComments(selection, manifest, lineMap, directory) {
+function approvedComments(selection, input) {
+  const { manifest, lineMap, directory, standards } = input;
   const { selectedModels, entries } = selection;
   if (!manifest.pullRequest || !lineMap || !Array.isArray(selectedModels) || !selectedModels.length ||
     !selectedModels.every(hasText) || new Set(selectedModels).size !== selectedModels.length ||
@@ -80,7 +94,9 @@ function approvedComments(selection, manifest, lineMap, directory) {
     used.add(entryKey);
     if (!results.has(result)) {
       const path = join(directory, result);
-      results.set(result, structural ? { comments: readJson(path).findings } : readResult(path, manifest, lineMap));
+      results.set(result, structural
+        ? { comments: readJson(path).findings }
+        : readResult(readFileSync(path, 'utf8'), input));
     }
 
     const report = results.get(result);
@@ -93,11 +109,46 @@ function approvedComments(selection, manifest, lineMap, directory) {
       throw new Error(`Approved entry ${entryKey} needs its reporting model and any supporting selected models.`);
     }
     if (item.body.match(INLINE_COMMENT_HEADING)[1] === 'Unverified') candidates += 1;
-    return { ...item, findingKey: findingKey ?? item.findingKey, modelSlugs };
+    const evidencePaths = [...new Set([...item.evidencePaths, ...standards])];
+    return { ...item, findingKey: findingKey ?? item.findingKey, modelSlugs, evidencePaths };
   });
   if (candidates > 3) throw new Error('Approve at most three unverified candidates per review.');
   validateInlineComments(comments, lineMap);
   return { selectedModels, comments };
+}
+
+function cursorFinalMessage(transcriptPath) {
+  const [message, end] = readFileSync(transcriptPath, 'utf8').trimEnd().split('\n').slice(-2)
+    .map((record) => JSON.parse(record));
+  const content = message?.message?.content;
+  if (end?.type !== 'turn_ended' || end.status !== 'success' || message?.role !== 'assistant' ||
+    !Array.isArray(content) || content.length !== 1 || content[0]?.type !== 'text' || !hasText(content[0].text)) {
+    throw new Error('Cursor transcript needs one final assistant text block followed by a successful turn end.');
+  }
+  return content[0].text;
+}
+
+function jsonObjectLength(text) {
+  let depth = 0;
+  for (const match of text.matchAll(/"(?:[^"\\]|\\.)*"|[{}]/g)) {
+    if (match[0] === '{') depth += 1;
+    if (match[0] === '}') {
+      depth -= 1;
+      if (depth === 0) return match.index + 1;
+    }
+  }
+  return 0;
+}
+
+function transcriptResult(text) {
+  const fence = text.match(/^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*$/m);
+  const start = fence?.index ?? text.search(/^[ \t]*\{/m);
+  const length = fence?.[0].length ?? (start < 0 ? 0 : jsonObjectLength(text.slice(start)));
+  const outside = `${text.slice(0, start)}\n${text.slice(start + length)}`;
+  if (!length || /^(?:```|[ \t]*\{)/m.test(outside)) {
+    throw new Error('Cursor transcript must contain one unambiguous JSON result.');
+  }
+  return fence?.[1] ?? text.slice(start, start + length);
 }
 
 const [command, path, argument, option, line] = process.argv.slice(2);
@@ -107,20 +158,22 @@ try {
       location.path === argument && location.side === option && location.line === Number(line));
     if (!match) throw new Error('No matching changed-line anchor.');
     process.stdout.write(serializeJson(match));
-  } else if (['verify', 'approve'].includes(command) && path && argument) {
-    const manifest = readJson(path);
-    const lineMap = manifest.lineMapPath && readJson(manifest.lineMapPath);
-    if (manifest.pullRequest && !lineMap) throw new Error('The PR manifest needs its pinned line map.');
+  } else if (['verify', 'approve', 'capture'].includes(command) && path && argument) {
+    const input = loadPinnedInput(path);
     if (command === 'verify' && hasText(option)) {
-      const result = readResult(argument, manifest, lineMap, option);
+      const result = readResult(readFileSync(argument, 'utf8'), input, option);
       console.log(`verified=${result.comments.length}`);
     } else if (command === 'approve') {
-      process.stdout.write(serializeJson(approvedComments(readJson(argument), manifest, lineMap, dirname(resolve(path)))));
+      process.stdout.write(serializeJson(approvedComments(readJson(argument), input)));
+    } else if (command === 'capture' && hasText(option) && hasText(line)) {
+      const result = readResult(transcriptResult(cursorFinalMessage(argument)), input, line);
+      writeFileSync(option, serializeJson(result), { flag: 'wx' });
+      console.log(`captured=${option}`);
     } else {
-      throw new Error('Verify requires the exact model from the reviewer job.');
+      throw new Error('Verify and capture require the exact model from the reviewer job. Capture also needs a fresh result path.');
     }
   } else {
-    throw new Error('Use anchor <map> <path> <side> <line>, verify <manifest> <result> <model>, or approve <manifest> <selection>.');
+    throw new Error('Use anchor <map> <path> <side> <line>, verify <manifest> <result> <model>, approve <manifest> <selection>, or capture <manifest> <transcript> <result> <model>.');
   }
 } catch (error) {
   fail(error.message, 'Check the pinned input, complete reviewer result, and approved selection.');
