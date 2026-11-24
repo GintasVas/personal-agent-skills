@@ -23,7 +23,8 @@ Do the review yourself. Do not invoke a review skill or delegate any part.
 
 ## Review
 
-1. Read every supplied hunk. Mark each hunk checked privately.
+1. Read every supplied hunk. As you read each one, mark it privately as a
+   finding, a candidate to verify, or no finding.
 2. Reconcile interactions across hunks. Trace changed contracts and data flow.
    Prioritize authorization, persistence, external I/O, concurrency, deploys,
    and errors.

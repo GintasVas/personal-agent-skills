@@ -26,8 +26,10 @@ review skill or delegate any part.
 
 ## Review
 
-1. Read every supplied hunk or whole-file snapshot for paths scope. Mark each
-   review unit checked privately.
+1. Read every supplied hunk or whole-file snapshot for paths scope. As you
+   read each unit, mark it privately as a finding, a candidate to verify, or
+   no finding. Look for direct reuse and removable wrappers, branches, state,
+   or conversions.
 2. Reconcile interactions across units. Trace interfaces, data and state flow,
    persistence, errors, and framework boundaries.
 3. Use applicable lenses to spot candidates. Verify each from its unit.
