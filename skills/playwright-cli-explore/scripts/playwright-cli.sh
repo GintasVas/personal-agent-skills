@@ -1,6 +1,11 @@
 #!/bin/sh
 
-package=@playwright/cli@0.1.25
+version=0.1.25
+if [ "${1-}" = --skill-url ]; then
+    printf 'https://github.com/microsoft/playwright-cli/tree/v%s/skills/playwright-cli\n' "$version"
+    exit 0
+fi
+package="@playwright/cli@$version"
 
 if command -v npx >/dev/null 2>&1; then
     exec npx --yes "$package" "$@"
