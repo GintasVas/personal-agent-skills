@@ -38,6 +38,10 @@ input for scope and anchors. For PRs, use the detached head worktree `source` as
 `code_root`, including for stack context. Run the host's required preflight
 there before building bundles. For local scopes, use the reported repo root.
 
+For a PR, use `changedPathsPreview` and the full `changedPaths` file to
+determine scope. `mergeBaseOid` is the diff base and `baseRefOid` is the base
+branch tip. Use the saved `description` and `linkedIssues` files.
+
 ## Scope large reviews
 
 Use prepare's file and line totals. A repo can group related paths in
@@ -58,21 +62,21 @@ anchors. The parent does not read the global line map.
 
 ## Run reviewers
 
-Put review settings and applicable writing rules in a short context file.
+Use the scope and repo routing once to select required standards. If any apply,
+write their repo-relative paths as a JSON array in `REVIEW_DIR/required-standards.json`.
+Append a context file path only for settings or writing rules the worker lacks.
 Pass untrusted text by path.
-Use tracked writing guides in `code_root`. Inline the relevant rules when a
-guide exists only in the caller checkout.
 
 ```bash
 node <this-skill-dir>/scripts/render-reviewer-prompt.mjs \
-  "$REVIEW_DIR" 1 "<exact slug>" "<worker.md>" "<context.md>"
+  "$REVIEW_DIR" 1 "<exact slug>" "<worker.md>"
 ```
 
 Build each prompt before launch.
 For each model, record its numbered prompt, final result, and runner or
-subagent ID. Send the prompt verbatim to the exact model in the code root.
-Launch concurrently where supported. Save the full final result before
-verification:
+subagent ID. Use the host guide. Give the exact model the prompt by file
+path when supported. Launch concurrently where supported. Save the full
+final result directly when possible, then verify:
 
 ```bash
 node <this-skill-dir>/scripts/review-results.mjs verify \
@@ -95,9 +99,9 @@ node <this-skill-dir>/scripts/prepare-pr-review-input.mjs verify "<PR>" "$REVIEW
 If verification fails, report the actual reason. Treat the results as
 unverified and do not post. If the patch changed, mark the results stale.
 When verification returns `contextChangesPath`, mark results stale if their
-`evidencePaths` intersect that list. If the list has entries and a result lacks
-evidence paths, recheck it on fresh input. Post only verified entries using the verified
-`headRefOid`.
+`evidencePaths` or required standards intersect that list. If the list has
+entries and a result lacks evidence paths, recheck it on fresh input. Post only
+verified entries using the verified `headRefOid`.
 
 Name the exact models that ran. Use the canonical heading and body. Show
 supporting models and differing priorities or confidence in chat. Keep

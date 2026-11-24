@@ -197,12 +197,19 @@ test('renders canonical prompts and validates individual candidate approvals', (
   const resultPath = join(directory, 'reviewer-1.result');
   const contextPath = join(directory, 'context.md');
   const selectionPath = join(directory, 'approved-selection.json');
+  const transcriptPath = join(directory, 'reviewer.jsonl');
+  const capturedPath = join(directory, 'captured.result');
+  const standardsPath = join(directory, 'required-standards.json');
+  const standard = 'standards.md';
   const model = SELECTED_MODELS[0];
   const headRefOid = 'pinned-head';
   const patch = addedFilePatch('docs/plan.md', 37, ['first changed line', 'second changed line']);
   writeFileSync(patchPath, patch);
   writeFileSync(lineMapPath, JSON.stringify(parseReviewLineMap(patch)));
   writeFileSync(descriptionPath, '{"body":"Unexpected PR body text."}');
+  mkdirSync(join(directory, 'source'));
+  writeFileSync(join(directory, 'source', standard), 'Read this standard.');
+  writeFileSync(standardsPath, JSON.stringify([standard]));
   writeFileSync(manifestPath, JSON.stringify({
     source: { worktreePath: join(directory, 'source') },
     pullRequest: { headRefOid },
@@ -226,6 +233,7 @@ test('renders canonical prompts and validates individual candidate approvals', (
   assert.ok(prompt.includes(descriptionPath));
   assert.ok(!prompt.includes('Unexpected PR body text.'));
   assert.ok(prompt.includes('Use the repository writing rules.'));
+  assert.ok(prompt.includes(`["${standard}"]`));
   assert.equal(
     JSON.parse(runScript('review-results', 'anchor', lineMapPath, 'docs/plan.md', 'RIGHT', '37')).anchor,
     'first changed line'
@@ -243,7 +251,12 @@ test('renders canonical prompts and validates individual candidate approvals', (
     line: 38,
     anchor: 'second changed line'
   });
-  const result = { model, headRefOid, standards: [], notes: [], descriptionNotes: [], comments: [candidate, confirmed] };
+  const result = { model, headRefOid, standards: [standard], notes: [], descriptionNotes: [], comments: [candidate, confirmed] };
+  writeFileSync(resultPath, JSON.stringify({ ...result, standards: [] }));
+  assert.throws(
+    () => runScript('review-results', 'verify', manifestPath, resultPath, model),
+    /did not report reading required standards/
+  );
   writeFileSync(resultPath, 'One finding and one candidate. See previous messages.');
   assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
   const fencedResult = `\`\`\`json\n${JSON.stringify(result)}\n\`\`\``;
@@ -257,13 +270,24 @@ test('renders canonical prompts and validates individual candidate approvals', (
     () => runScript('review-results', 'verify', manifestPath, resultPath, SELECTED_MODELS[1]),
     /exact model/
   );
+  const assistant = { role: 'assistant', message: { content: [{ type: 'text', text: fencedResult }] } };
+  const turnEnded = { type: 'turn_ended', status: 'success' };
+  const capture = () => runScript('review-results', 'capture', manifestPath, transcriptPath, capturedPath, model);
+  writeFileSync(transcriptPath, JSON.stringify(assistant));
+  assert.throws(capture, /successful turn end/);
+  writeFileSync(transcriptPath, [assistant, turnEnded].map((record) => JSON.stringify(record)).join('\n'));
+  assert.match(capture(), /captured=/);
+  assert.deepEqual(JSON.parse(readFileSync(capturedPath, 'utf8')), result);
+  assert.throws(capture, /EEXIST/);
 
   writeFileSync(selectionPath, JSON.stringify({
     selectedModels: [model],
     entries: [{ result: 'reviewer-1.result', number: 1, modelSlugs: [model] }]
   }));
   const approved = JSON.parse(runScript('review-results', 'approve', manifestPath, selectionPath));
-  assert.deepEqual(approved.comments, [{ ...candidate, modelSlugs: [model] }]);
+  assert.deepEqual(approved.comments, [{
+    ...candidate, modelSlugs: [model], evidencePaths: [...candidate.evidencePaths, standard]
+  }]);
   const lineMap = parseReviewLineMap(patch);
   for (const confidence of [49, 75]) {
     const body = candidate.body.replace('confidence 65', `confidence ${confidence}`);

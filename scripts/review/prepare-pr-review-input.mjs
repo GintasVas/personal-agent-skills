@@ -53,6 +53,8 @@ function prepare(reference, outputDirectory, groupRoots) {
   const manifestPath = join(directory, 'manifest.json');
   const bundlesPath = join(directory, 'review-bundles.json');
   const descriptionPath = join(directory, 'pr-description.json');
+  const changedPathsPath = join(directory, 'changed-paths.json');
+  const linkedIssuesPath = join(directory, 'linked-issues.json');
   mkdirSync(directory, { recursive: true });
   markReviewInput(directory);
   let source;
@@ -61,6 +63,8 @@ function prepare(reference, outputDirectory, groupRoots) {
   let additions;
   let deletions;
   let reviewableHunks;
+  let paths;
+  let mergeBaseOid;
 
   let pinned;
 
@@ -68,8 +72,9 @@ function prepare(reference, outputDirectory, groupRoots) {
     let baseRefOid;
     ({ baseRefOid, source } = createReviewSource(repositoryRoot, directory, before));
     pinned = { ...before, baseRefOid };
+    mergeBaseOid = run('git', ['-C', repositoryRoot, 'merge-base', source.temporaryBaseRef, source.temporaryRef]).trim();
     const patch = createReviewPatch(repositoryRoot, source);
-    const after = getPullRequest(reference, { includeDescription: true });
+    const after = getPullRequest(reference, { includeDescription: true, includeLinkedIssues: true });
 
     if (!samePullRequestComparison(pullRequestComparison(before), pullRequestComparison(after))) {
       throw new Error(
@@ -79,7 +84,7 @@ function prepare(reference, outputDirectory, groupRoots) {
 
     patchDigest = sha256(patch);
     files = parsePatch(patch);
-    const paths = createReviewPatch(repositoryRoot, source, { namesOnly: true }).split('\0').filter(Boolean);
+    paths = createReviewPatch(repositoryRoot, source, { namesOnly: true }).split('\0').filter(Boolean);
     assertPatchCoverage(files, paths);
     additions = files.reduce((total, file) => total + file.additions, 0);
     deletions = files.reduce((total, file) => total + file.deletions, 0);
@@ -93,6 +98,7 @@ function prepare(reference, outputDirectory, groupRoots) {
         reference
       },
       comparison: pullRequestComparison(pinned),
+      mergeBaseOid,
       source,
       descriptionDigest: sha256(serializeJson(description(after))),
       patchDigest,
@@ -106,6 +112,8 @@ function prepare(reference, outputDirectory, groupRoots) {
     writeJsonFile(manifestPath, manifest);
     writeJsonFile(bundlesPath, bundleSkeleton(manifest, groupRoots));
     writeJsonFile(descriptionPath, description(after));
+    writeJsonFile(changedPathsPath, paths);
+    writeJsonFile(linkedIssuesPath, (after.closingIssuesReferences ?? []).map(({ number, url }) => ({ number, url })));
   } catch (error) {
     if (source) {
       removeReviewSource(repositoryRoot, source);
@@ -119,8 +127,13 @@ function prepare(reference, outputDirectory, groupRoots) {
   console.log(`lineMap=${lineMapPath}`);
   console.log(`manifest=${manifestPath}`);
   console.log(`bundles=${bundlesPath}`);
+  console.log(`description=${descriptionPath}`);
+  console.log(`linkedIssues=${linkedIssuesPath}`);
+  console.log(`changedPaths=${changedPathsPath}`);
+  console.log(`changedPathsPreview=${JSON.stringify(paths.slice(0, 10))}`);
   console.log(`baseRefName=${before.baseRefName}`);
   console.log(`baseRefOid=${pinned.baseRefOid}`);
+  console.log(`mergeBaseOid=${mergeBaseOid}`);
   console.log(`headRefName=${before.headRefName}`);
   console.log(`headRefOid=${before.headRefOid}`);
   console.log(`source=${source.worktreePath}`);

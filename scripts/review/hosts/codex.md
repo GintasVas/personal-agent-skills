@@ -37,8 +37,8 @@ report the selected efforts in the review summary.
 
 Use the native model-pinned subagent tool, passing the selected values as
 `model` and `reasoning_effort` with `fork_turns: "none"`. Full-history
-forks inherit settings and cannot accept these overrides. Supply the full
-rendered prompt because the child does not inherit chat history.
+forks inherit settings and cannot accept these overrides. Give the child the
+absolute prompt path and tell it to read and follow the file.
 Launch one reviewer per selected pair. If the tool cannot pin both settings,
 stop and explain the limitation. A prompt requesting deeper thought does not
 set reasoning effort.

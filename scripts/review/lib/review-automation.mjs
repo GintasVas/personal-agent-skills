@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync
@@ -143,15 +144,17 @@ export function runReviewer({
   );
 }
 
-export function getPullRequest(reference, { includeDescription = false } = {}) {
-  const fields = 'number,baseRefName,baseRefOid,headRefName,headRefOid,url';
+export function getPullRequest(reference, { includeDescription = false, includeLinkedIssues = false } = {}) {
+  const fields = ['number', 'baseRefName', 'baseRefOid', 'headRefName', 'headRefOid', 'url'];
+  if (includeDescription) fields.push('title', 'body');
+  if (includeLinkedIssues) fields.push('closingIssuesReferences');
   return JSON.parse(
     run('gh', [
       'pr',
       'view',
       reference,
       '--json',
-      includeDescription ? `${fields},title,body` : fields
+      fields.join(',')
     ])
   );
 }
@@ -178,6 +181,28 @@ export function reviewIdentity(manifest) {
 
 export function reviewCodeRoot(manifest) {
   return manifest.source?.worktreePath ?? manifest.root;
+}
+
+export function requiredReviewStandards(directory, manifest) {
+  const listPath = join(directory, 'required-standards.json');
+  if (!existsSync(listPath)) return [];
+  const paths = JSON.parse(readFileSync(listPath, 'utf8'));
+  if (!Array.isArray(paths) || paths.some((path) =>
+    typeof path !== 'string' || isAbsolute(path) ||
+    path.split('/').some((part) => !part.trim() || part === '.' || part === '..')
+  )) {
+    throw new Error('required-standards.json must list repository-relative file paths.');
+  }
+  if (!paths.length) return [];
+
+  const root = realpathSync(reviewCodeRoot(manifest));
+  for (const path of paths) {
+    const file = join(root, path);
+    if (!existsSync(file) || !isChildPath(root, realpathSync(file)) || !statSync(file).isFile()) {
+      throw new Error(`Required standard must be a file in the code root: ${path}`);
+    }
+  }
+  return [...new Set(paths)];
 }
 
 export function pullRequestComparison(pullRequest) {

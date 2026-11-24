@@ -33,10 +33,10 @@ Pass `<this-skill-dir>/agents/code-reviewer.md` as `<worker.md>` in the
 shared prompt command. The script adds all of
 [shaping-lenses.md](shaping-lenses.md), including Common.
 
-Identify changed specs from the manifest and repo conventions. Skip test
+Identify changed specs from `changedPaths` and repo conventions. Skip test
 files. Pass the repo-relative spec paths and require the requirements pass,
-including for spec-only PRs. Pass any originating spec by path. Save available
-originating issue text in `REVIEW_DIR` and pass its absolute path.
+including for spec-only PRs. Pass any originating spec by path. Fetch issue
+bodies only for requirements. Save them in `REVIEW_DIR` and pass their paths.
 
 Follow [Run reviewers](workflow.md#run-reviewers).
 

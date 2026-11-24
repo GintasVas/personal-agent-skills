@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 
-import { fail, reviewCodeRoot, reviewIdentity } from './lib/review-automation.mjs';
+import { fail, requiredReviewStandards, reviewCodeRoot, reviewIdentity } from './lib/review-automation.mjs';
 
 const lensByWorker = {
   'code-reviewer.md': 'shaping-lenses.md',
@@ -37,6 +37,10 @@ try {
     `Code root: ${codeRoot}`,
     `Manifest: ${manifestPath}`
   ];
+  const standards = requiredReviewStandards(reviewDir, manifest);
+  if (standards.length) {
+    input.push(`Required standards (read each in the code root and report these paths in standards): ${JSON.stringify(standards)}`);
+  }
   if (existsSync(indexPath)) {
     input.push(`Review index: ${indexPath}`);
   } else if (manifest.patchPath) {
@@ -65,7 +69,7 @@ try {
       `Look up an anchor with: node "${join(skillDir, 'scripts/review-results.mjs')}" anchor "<map>" "<path>" "<LEFT|RIGHT>" "<line>".`,
       'Query the bundle anchor file or line map by location. Keep the full map out of context.',
       'Use the applicable repository standards and list the sources you actually read.',
-      'Return only one self-contained final JSON object. Put summaries in notes and include every result and its metadata.',
+      'Produce one self-contained final JSON object in the result channel named by the host. Put summaries in notes and include every result and its metadata.',
       'For input errors, return an object with inputError and the reason. Otherwise use this result shape:',
       JSON.stringify({ model, ...identity, standards: [], comments: [], notes: [], descriptionNotes: [] }),
       'Put every finding, question, and unverified candidate in comments, with body, findingKey, path, and evidencePaths. Include scope-specific fields from the worker contract.',
