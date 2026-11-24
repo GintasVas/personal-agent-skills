@@ -178,7 +178,7 @@ export POSTED_COMMENT="${TMP}/posted-comment.json"
 export REAL_GIT
 write_pull_request() {
   cat > "$GH_PR_JSON" <<JSON
-{"number":42,"baseRefName":"${3:-feature/parent}","baseRefOid":"$1","headRefName":"feature/child","headRefOid":"${2:-0123456789abcdef}","url":"https://github.com/example-org/example/pull/42"}
+{"number":42,"baseRefName":"${3:-feature/parent}","baseRefOid":"$1","headRefName":"feature/child","headRefOid":"${2:-0123456789abcdef}","url":"https://github.com/example-org/example/pull/42","title":"${4:-Fixture title}","body":"Fixture body"}
 JSON
 }
 
@@ -219,6 +219,7 @@ grep -Fq 'files=2' "${TMP}/prepare.out"
 grep -Fq 'additions=2' "${TMP}/prepare.out"
 grep -Fq 'deletions=2' "${TMP}/prepare.out"
 grep -Fq 'reviewableHunks=2' "${TMP}/prepare.out"
+grep -Fq '"title": "Fixture title"' "${REVIEW_DIRECTORY}/pr-description.json"
 grep -Fq '"path": "src/example.ts"' "${REVIEW_DIRECTORY}/manifest.json"
 grep -Fq '"additions": 1' "${REVIEW_DIRECTORY}/manifest.json"
 grep -Fq '"deletions": 1' "${REVIEW_DIRECTORY}/manifest.json"
@@ -241,6 +242,7 @@ grep -Fq 'docs/example.md#1' "${REVIEW_DIRECTORY}/review-bundles.json"
 node "$PREPARE" verify 42 "${REVIEW_DIRECTORY}/manifest.json" \
   > "${TMP}/verify.out"
 grep -Fq 'verified=' "${TMP}/verify.out"
+grep -Fq 'descriptionChanged=false' "${TMP}/verify.out"
 grep -Fq 'baseRefOid=base0123456789' "${TMP}/verify.out"
 if grep -Fq 'pinnedHeadRefOid=' "${TMP}/verify.out"; then
   echo "verify must not report drift when the head is unchanged" >&2
@@ -248,6 +250,10 @@ if grep -Fq 'pinnedHeadRefOid=' "${TMP}/verify.out"; then
 fi
 grep -Fq "update-ref -d refs/agent-review-input/$(basename "${REVIEW_DIRECTORY}")/verify-head" "${GIT_CALLS}"
 grep -Fq "update-ref -d refs/agent-review-input/$(basename "${REVIEW_DIRECTORY}")/verify-base" "${GIT_CALLS}"
+
+write_pull_request base0123456789 0123456789abcdef feature/parent 'Changed title'
+node "$PREPARE" verify 42 "${REVIEW_DIRECTORY}/manifest.json" > "${TMP}/description-verify.out"
+grep -Fq 'descriptionChanged=true' "${TMP}/description-verify.out"
 
 write_pull_request stale-github-base
 node "$PREPARE" verify 42 "${REVIEW_DIRECTORY}/manifest.json" \
@@ -468,22 +474,24 @@ done
 
 for text in 'prepare-pr-review-input.mjs prepare' 'prepare-pr-review-input.mjs verify' \
   'build-review-bundles.mjs' 'verify-review-bundles.mjs' 'post-inline-pr-comments.mjs' \
-  'cleanup-review-input.mjs' 'one JSON object on standard input' \
-  'Give every model all verified bundles' 'one attributable launch and one complete result' \
+  'cleanup-review-input.mjs' 'approved entries by source result file and one-based index' \
+  'Give every model all verified bundles' 'Save the full' \
+  'render-reviewer-prompt.mjs' 'review-results.mjs verify' 'review-results.mjs approve' \
   'If verification fails, report the actual reason.' 'Post only what the user explicitly approved.' \
-  'on retry.' 'Synthesize without discovering new findings.' 'Reviewer model: <exact slug>' \
-  'Selected: <exact slug>.' 'Repeat `--model`' 'set `anchor: "none"` and omit `line` and `side`.'; do
+  'on retry.' 'Synthesize without discovering new findings.' \
+  'Selected: <exact slug>.' 'Repeat `--model`' 'Post approved unverified candidates'; do
   grep -Fq "$text" "$WORKFLOW"
 done
 
 for text in '<this-skill-dir>/agents/code-reviewer.md' '[shaping-lenses.md](shaping-lenses.md), including Common.' \
   'including for spec-only PRs.' 'when location and mechanism match.' \
-  'Exclude design alternatives.' '/skill:review-pr'; do
+  '`post all` includes design alternatives.' '`post alternatives` and `post 1,3 and alternatives`' \
+  'gh pr comment "<PR URL>" --body-file "$REVIEW_DIR/design-alternatives.md"' '/skill:review-pr'; do
   grep -Fq "$text" "$REVIEW"
 done
 
 for text in 'Use detached head `source` as the only code root.' 'Read every supplied hunk.' \
-  'Reconcile interactions across hunks.' 'Return `No findings.` only after checking all hunks and resolving candidates.' \
+  'Reconcile interactions across hunks.' 'Complete the result only after checking all hunks and resolving candidates.' \
   'Return an input error if required input or any bundle is missing.' 'trace execution and the external state' \
   'Verify absence in the code root.' 'mechanical CI checks' 'lint, formatting, source style, and missing lockfiles.' \
   'Do not invoke a review skill or delegate any part.' 'Return `headRefOid`' \

@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   bundleSkeleton,
@@ -157,6 +158,128 @@ test('large PR patches retain every reviewable hunk', () => {
     bundles.reduce((total, bundle) => total + bundle.hunkIds.length, 0),
     301
   );
+});
+
+test('declared relationships and scope roots group reviewable changes exactly once', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'review-groups-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, '.review-groups.json'), JSON.stringify({
+    groups: { booking: ['api/booking.yaml', 'service/booking/', 'generated/'] }
+  }));
+  const paths = [
+    'api/booking.yaml',
+    'service/booking/handler.js',
+    'generated/booking.js',
+    'changes/cart/proposal.md',
+    'changes/cart/specs/cart/spec.md',
+    'changes/payment/proposal.md',
+    'docs/design.md'
+  ];
+  const files = parsePatch(paths.map((path) => addedFilePatch(path, 1, ['text'])).join('\n'));
+  const manifest = { root, files };
+  const bundles = bundleSkeleton(manifest, ['changes']).bundles;
+
+  assert.deepEqual(bundles, [
+    { name: 'group:booking', hunkIds: ['api/booking.yaml#1', 'service/booking/handler.js#1'] },
+    { name: 'changes/cart', hunkIds: ['changes/cart/proposal.md#1', 'changes/cart/specs/cart/spec.md#1'] },
+    { name: 'changes/payment', hunkIds: ['changes/payment/proposal.md#1'] },
+    { name: 'docs', hunkIds: ['docs/design.md#1'] }
+  ]);
+});
+
+test('renders canonical prompts and validates individual candidate approvals', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'review-results-test-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const manifestPath = join(directory, 'manifest.json');
+  const lineMapPath = join(directory, 'line-map.json');
+  const patchPath = join(directory, 'patch.diff');
+  const descriptionPath = join(directory, 'pr-description.json');
+  const resultPath = join(directory, 'reviewer-1.result');
+  const contextPath = join(directory, 'context.md');
+  const selectionPath = join(directory, 'approved-selection.json');
+  const model = SELECTED_MODELS[0];
+  const headRefOid = 'pinned-head';
+  const patch = addedFilePatch('docs/plan.md', 37, ['first changed line', 'second changed line']);
+  writeFileSync(patchPath, patch);
+  writeFileSync(lineMapPath, JSON.stringify(parseReviewLineMap(patch)));
+  writeFileSync(descriptionPath, '{"body":"Unexpected PR body text."}');
+  writeFileSync(manifestPath, JSON.stringify({
+    source: { worktreePath: join(directory, 'source') },
+    pullRequest: { headRefOid },
+    patchPath,
+    lineMapPath,
+    descriptionDigest: 'digest'
+  }));
+  writeFileSync(contextPath, 'Use the repository writing rules.');
+
+  const runScript = (name, ...args) =>
+    execFileSync(process.execPath, [fileURLToPath(new URL(`../scripts/${name}.mjs`, import.meta.url)), ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+  const worker = fileURLToPath(new URL('../agents/code-reviewer.md', import.meta.url));
+  const promptPath = runScript('render-reviewer-prompt', directory, '1', model, worker, contextPath).trim();
+  const prompt = readFileSync(promptPath, 'utf8');
+  assert.ok(prompt.includes(readFileSync(worker, 'utf8')));
+  assert.ok(prompt.includes(`Reviewer model: ${model}`));
+  assert.ok(prompt.includes(readFileSync(new URL('../shaping-lenses.md', import.meta.url), 'utf8')));
+  assert.ok(prompt.includes(descriptionPath));
+  assert.ok(!prompt.includes('Unexpected PR body text.'));
+  assert.ok(prompt.includes('Use the repository writing rules.'));
+  assert.equal(
+    JSON.parse(runScript('review-results', 'anchor', lineMapPath, 'docs/plan.md', 'RIGHT', '37')).anchor,
+    'first changed line'
+  );
+
+  const candidate = finding({
+    body: '**[Unverified] - Date boundary - confidence 65:**\n\nBelow the confidence threshold. Needs verification: Check the expected date format.',
+    findingKey: 'docs/plan.md:date-boundary',
+    evidencePaths: ['docs/plan.md']
+  });
+  const confirmed = finding({
+    body: FINDING_BODY,
+    findingKey: candidate.findingKey,
+    evidencePaths: candidate.evidencePaths,
+    line: 38,
+    anchor: 'second changed line'
+  });
+  const result = { model, headRefOid, standards: [], notes: [], descriptionNotes: [], comments: [candidate, confirmed] };
+  writeFileSync(resultPath, 'One finding and one candidate. See previous messages.');
+  assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
+  const fencedResult = `\`\`\`json\n${JSON.stringify(result)}\n\`\`\``;
+  writeFileSync(resultPath, `Review complete.\n\n${fencedResult}`);
+  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
+  writeFileSync(resultPath, `${fencedResult}\n\n${fencedResult}`);
+  assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
+  writeFileSync(resultPath, JSON.stringify(result));
+  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
+  assert.throws(
+    () => runScript('review-results', 'verify', manifestPath, resultPath, SELECTED_MODELS[1]),
+    /exact model/
+  );
+
+  writeFileSync(selectionPath, JSON.stringify({
+    selectedModels: [model],
+    entries: [{ result: 'reviewer-1.result', number: 1, modelSlugs: [model] }]
+  }));
+  const approved = JSON.parse(runScript('review-results', 'approve', manifestPath, selectionPath));
+  assert.deepEqual(approved.comments, [{ ...candidate, modelSlugs: [model] }]);
+  const lineMap = parseReviewLineMap(patch);
+  for (const confidence of [49, 75]) {
+    const body = candidate.body.replace('confidence 65', `confidence ${confidence}`);
+    assert.throws(() => validateInlineComments([{ ...candidate, body }], lineMap), /confidence 50–74/);
+  }
+  assert.throws(
+    () => validateInlineComments([{ ...confirmed, body: FINDING_BODY.replace('85', '74') }], lineMap),
+    /at least 75/
+  );
+  const [unverified, verified] = withModelAttribution(approved.comments.concat({ ...confirmed, modelSlugs: [model] }), [model]);
+  assert.notEqual(unverified.digest, verified.digest);
+
+  result.comments[0] = { ...candidate, anchor: 'none' };
+  writeFileSync(resultPath, JSON.stringify(result));
+  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
+  assert.throws(() => runScript('review-results', 'approve', manifestPath, selectionPath), /changed-line anchor/);
 });
 
 test('materialized bundles contain assigned hunks and reject later truncation', () => {

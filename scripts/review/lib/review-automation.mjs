@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -23,7 +24,7 @@ const REVIEW_INPUT_MARKER = '.agent-review-input';
 const REVIEW_INPUT_MARKER_CONTENT = 'agent-review-input\n';
 const REVIEW_INPUT_REF_ROOT = 'refs/agent-review-input';
 export const INLINE_COMMENT_HEADING =
-  /^\*\*\[(?:P[0-2]|Question)\] - [^:\n]+ - confidence (?:100|[1-9]?\d):\*\*\n\n\S/;
+  /^\*\*\[(P[0-2]|Question|Unverified)\] - [^:\n]+ - confidence (100|[1-9]?\d):\*\*\n\n\S/;
 
 const LANGUAGE_BY_EXTENSION = {
   js: 'JavaScript',
@@ -142,14 +143,15 @@ export function runReviewer({
   );
 }
 
-export function getPullRequest(reference) {
+export function getPullRequest(reference, { includeDescription = false } = {}) {
+  const fields = 'number,baseRefName,baseRefOid,headRefName,headRefOid,url';
   return JSON.parse(
     run('gh', [
       'pr',
       'view',
       reference,
       '--json',
-      'number,baseRefName,baseRefOid,headRefName,headRefOid,url'
+      includeDescription ? `${fields},title,body` : fields
     ])
   );
 }
@@ -166,6 +168,16 @@ export function pullRequestRepository(url) {
 
 export function pullRequestRepositoryUrl(url) {
   return `${new URL(url).origin}/${pullRequestRepository(url)}.git`;
+}
+
+export function reviewIdentity(manifest) {
+  return manifest.pullRequest
+    ? { headRefOid: manifest.pullRequest.headRefOid }
+    : { inputDigest: manifest.inputDigest ?? manifest.patchDigest };
+}
+
+export function reviewCodeRoot(manifest) {
+  return manifest.source?.worktreePath ?? manifest.root;
 }
 
 export function pullRequestComparison(pullRequest) {
@@ -742,6 +754,20 @@ export function findingDigest(findingKey) {
   return sha256(findingKey.trim().split(/\s+/).join(' ').toLowerCase()).slice(0, 12);
 }
 
+export function validateHeadingConfidence(kind, confidence, body) {
+  if (kind !== 'Unverified') {
+    if (confidence < 75) throw new Error('Findings and questions need confidence of at least 75.');
+    return;
+  }
+
+  const prefix = 'Below the confidence threshold. Needs verification: ';
+  const paragraph = body.split('\n\n', 2)[1];
+  if (confidence < 50 || confidence >= 75 || !paragraph?.startsWith(prefix) ||
+    !paragraph.slice(prefix.length).trim() || paragraph.includes('\n')) {
+    throw new Error('Unverified candidates need confidence 50–74 and one line naming the missing evidence.');
+  }
+}
+
 export function validateInlineComments(comments, lineMap) {
   if (!Array.isArray(comments) || comments.length === 0) {
     throw new Error('the comment input must contain a non-empty JSON array');
@@ -766,11 +792,18 @@ export function validateInlineComments(comments, lineMap) {
       );
     }
 
-    if (!INLINE_COMMENT_HEADING.test(comment.body)) {
+    const heading = comment.body.match(INLINE_COMMENT_HEADING);
+    if (!heading) {
       throw new Error(
         `comment for ${comment.path}:${comment.line} must start with bold severity and confidence`
       );
     }
+
+    const [, kind, score] = heading;
+    if (kind === 'Unverified' && general) {
+      throw new Error('Unverified comments need a changed-line anchor.');
+    }
+    validateHeadingConfidence(kind, Number(score), comment.body);
 
     if (/\blines?\s+\d+\b/i.test(comment.body)) {
       throw new Error(
@@ -847,12 +880,46 @@ export function parsePatch(patch) {
   });
 }
 
-export function bundleSkeleton(manifest) {
+function bundleDeclarations(root) {
+  if (!root) return [];
+  const path = join(root, '.review-groups.json');
+  if (!existsSync(path)) return [];
+  if (!lstatSync(path).isFile()) {
+    throw new Error('.review-groups.json must be a regular file');
+  }
+  const { groups } = JSON.parse(readFileSync(path, 'utf8'));
+  if (!groups || Array.isArray(groups) || typeof groups !== 'object') {
+    throw new Error('.review-groups.json must contain a groups object');
+  }
+  for (const [name, paths] of Object.entries(groups)) {
+    if (!name.trim() || !Array.isArray(paths) || !paths.length ||
+      paths.some((path) => typeof path !== 'string' || !path || isAbsolute(path) ||
+        path.split('/').includes('..') || path.includes('\\'))) {
+      throw new Error('Each review group needs a name and repository-relative paths');
+    }
+  }
+  return Object.entries(groups);
+}
+
+export function bundleSkeleton(manifest, groupRoots = []) {
+  const groups = bundleDeclarations(reviewCodeRoot(manifest));
   const bundles = new Map();
 
   for (const file of manifest.files.filter(isReviewableFile)) {
     if (file.hunks.length === 0) continue;
-    const name = file.bundleCandidate;
+    const root = groupRoots.find((root) => file.path.startsWith(`${root}/`));
+    let name;
+    if (root) {
+      const child = file.path.slice(root.length + 1).split('/')[0];
+      name = `${root}/${child}`;
+    } else {
+      const matches = groups.filter(([, paths]) => paths.some((path) =>
+        path.endsWith('/') ? file.path.startsWith(path) : file.path === path));
+      if (matches.length > 1) {
+        throw new Error(`${file.path} belongs to multiple review groups`);
+      }
+      name = matches.length ? `group:${matches[0][0]}` : file.bundleCandidate;
+    }
     const bundle = bundles.get(name) ?? { name, hunkIds: [] };
     bundle.hunkIds.push(...file.hunks.map((hunk) => hunk.id));
     bundles.set(name, bundle);

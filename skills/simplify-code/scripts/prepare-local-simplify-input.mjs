@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import {
@@ -114,6 +114,8 @@ function prepareChanges(root, outputDirectory, paths) {
   console.log(`manifest=${manifestPath}`);
   console.log(`bundles=${join(outputDirectory, 'review-bundles.json')}`);
   console.log(`patchDigest=${patchDigest}`);
+  console.log(`files=${files.length}`);
+  console.log(`lines=${files.reduce((sum, file) => sum + file.additions + file.deletions, 0)}`);
 }
 
 function preparePaths(root, outputDirectory, paths) {
@@ -141,6 +143,11 @@ function preparePaths(root, outputDirectory, paths) {
   console.log(`manifest=${manifestPath}`);
   console.log(`bundles=${join(outputDirectory, 'review-bundles.json')}`);
   console.log(`inputDigest=${inputDigest}`);
+  console.log(`files=${files.length}`);
+  console.log(`lines=${entries.reduce((sum, [, content]) => {
+    const text = content.toString('utf8');
+    return text ? sum + text.split('\n').length - Number(text.endsWith('\n')) : sum;
+  }, 0)}`);
 }
 
 const [scope, ...paths] = process.argv.slice(2);
@@ -153,8 +160,9 @@ if (!['changes', 'paths'].includes(scope) || (scope === 'paths' && paths.length 
   );
 }
 
+let outputDirectory;
 try {
-  const outputDirectory = createReviewInputDirectory(root);
+  outputDirectory = createReviewInputDirectory(root);
   console.log(`directory=${outputDirectory}`);
   if (scope === 'changes') {
     prepareChanges(root, outputDirectory, paths);
@@ -162,6 +170,7 @@ try {
     preparePaths(root, outputDirectory, paths);
   }
 } catch (error) {
+  if (outputDirectory) rmSync(outputDirectory, { force: true, recursive: true });
   fail(
     `Could not prepare local simplify input: ${error.message}`,
     'Check the requested paths and rerun.'

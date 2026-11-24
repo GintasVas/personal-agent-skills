@@ -13,7 +13,7 @@ Edit or post only on explicit request after showing findings.
 
 ## Select models
 
-Follow [Select models](workflow.md#select-models) before running commands.
+Follow [Select models](workflow.md#select-models).
 
 ## Prepare input
 
@@ -40,11 +40,12 @@ module. Follow [Scope large reviews](workflow.md#scope-large-reviews).
 
 ## Run reviewers
 
-Pass `<this-skill-dir>/agents/code-simplifier.md` and every section of
+Pass `<this-skill-dir>/agents/code-simplifier.md` as `<worker.md>` in the
+shared prompt command. The script adds all of
 [simplification-lenses.md](simplification-lenses.md), including Common.
 
-For local reviews, pass the digest and the bundle index, changes patch, or
-whole-file manifest for the selected scope. Follow
+The script supplies the local digest and the bundle index, changes patch,
+or whole-file manifest for the selected scope. Follow
 [Run reviewers](workflow.md#run-reviewers).
 
 ## Verify and report
@@ -59,8 +60,7 @@ Number in-scope findings in P0 to P2 order.
 
 For a PR, if approval is pending, ask
 `Reply "post all", "post 1,3", or "post none".`
-Build each `findingKey` from location and mechanism. Follow
-[Post approved findings](workflow.md#post-approved-findings).
+Follow [Post approved findings](workflow.md#post-approved-findings).
 
 ## Cleanup
 

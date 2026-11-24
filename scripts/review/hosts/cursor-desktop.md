@@ -12,6 +12,8 @@ the supported slugs.
 
 ## Launch reviewers
 
-Run each job through the native model-pinned subagent mechanism. Give it the complete prompt and
-require it to use the code root as its only code root. Launch jobs concurrently when the mechanism
-supports it. Do not invoke `cursor-agent` or `cursor-run-reviewer.mjs` from the desktop GUI.
+Use native `generalPurpose` when it can pin the exact model. Stop if exact
+selection is unavailable. Give it the rendered prompt and pinned code root.
+Use read-only mode where available and enforce the worker's read-only contract
+in the prompt. Save its full final message as the result. Launch concurrently
+where supported. Do not invoke Cursor CLI from the desktop GUI.

@@ -35,7 +35,7 @@ function anchorFor(lineMap, path, requirement) {
     .sort((first, second) => first.line - second.line);
   const heading = locations.find(
     (location) =>
-      location.anchor.match(/^#{2,4}\s+Requirement:\s*(.+)$/)?.[1].trim() === requirement.trim()
+      location.anchor.match(/^#{2,6}\s+(?:Requirement:\s*)?(.+)$/)?.[1].trim() === requirement.trim()
   );
   const location = heading ?? locations[0];
   return location && { anchor: location.anchor, line: location.line, side: location.side };

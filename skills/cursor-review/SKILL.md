@@ -27,7 +27,8 @@ Each round:
 
 1. Push the intended changes. Run `review-pr` and `simplify-code`, both with
    `--model claude-opus-5-5-high`, against the same published PR head.
-2. Wait for both to finish. Verify their inputs and post all findings.
+2. Wait for both to finish. Verify their inputs and use each skill's
+   `post all` option.
    Count distinct findings across both results, counting duplicates once.
 3. Run `address-comments` in the PR checkout, verify fixes, and push.
 4. If `--N` was supplied and this round's combined count is at least N,

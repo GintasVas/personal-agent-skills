@@ -10,8 +10,9 @@ that creates an observable contradiction or missing outcome in the delivered sco
 Record every authoritative path searched for counter-evidence.
 
 Check inherited rules even when a link is broken. Verify sibling ownership and
-resolve source conflicts before reporting a finding. Try to disprove each
-candidate in a second pass. Ask a question only for unresolved ambiguity that
+resolve conflicts between authorities. A contradiction within the target or
+between the target and its applicable authority can itself be a finding.
+Try to disprove each candidate in a second pass. Ask a question only for unresolved ambiguity that
 affects behavior. Exclude explicit non-goals from findings, questions, and
 accepted exceptions. Apply Q015 or T003 to a target rule that contradicts the
 declared scope.

@@ -34,7 +34,7 @@ for text in '| Bundled PR | Detached head `source` and review index with `headRe
   'Return an input error if required input or any materialized bundle is missing.' \
   'Read every supplied hunk or whole-file snapshot for paths scope.' \
   'Reconcile interactions across units.' 'Verify absence in the code root.' \
-  'Return `No findings.` only after checking all units and resolving candidates.' \
+  'Complete the result only after checking all units and resolving candidates.' \
   'cohesive state machines.' 'Check interchangeability' 'likely variation' \
   'A second caller or planned feature is optional.' 'Use the lower score. Report only findings with confidence >= 75.' \
   'Rank by the size, reach, and recurrence of the gain.' '| `Delete` | Remove in-scope code the refactor makes obsolete. |' \

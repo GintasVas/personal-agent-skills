@@ -5,7 +5,7 @@ names.
 
 ## Model selection
 
-When no `--model` argument is present, ask which reviewer models to use before any other tool use.
+When no `--model` argument is present, ask which reviewer models to use before preparing review input.
 Use the host's model picker with one option per exact available model slug and allow multiple
 selections when available. Otherwise, ask in chat for comma-separated exact slugs. Wait for the
 answer before reading files, inspecting Git, fetching PR metadata, or validating the scope.
