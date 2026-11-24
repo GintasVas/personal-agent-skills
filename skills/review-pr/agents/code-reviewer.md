@@ -54,12 +54,22 @@ non-goals and deferred work. Read the originating issue or spec when supplied.
 Report requirements findings separately. Cite the spec path, heading, and
 mismatch. State what you could not verify. Do not infer requirements.
 
+## Confidence
+
+Score the strength of the evidence, independent of impact and likelihood.
+Report only findings with confidence >= 75.
+
+| Score | Evidence |
+| --- | --- |
+| 0 | Contradicted or outside the review scope |
+| 25 | Plausible with little evidence |
+| 50 | Some evidence, but a key assumption remains unverified |
+| 75 | Evidence shows the failure mechanism or an applicable rule or established pattern that the change violates |
+| 100 | Direct evidence proves the failure or violation |
+
 ## Output
 
 Return `No findings.` only after checking all hunks and resolving candidates.
-Score confidence in the evidence, independent of impact and likelihood.
-Report only findings at confidence >= 75. At 75, evidence shows the mechanism
-or violation. At 100, direct evidence proves it.
 
 Use P0 for critical harm, P1 for material impact, and P2 for a bounded issue
 worth fixing. Order findings P0 to P2. Use `Correctness`, `Security`,

@@ -57,12 +57,18 @@ or port keeps the change local. A second caller or planned feature is optional.
 Direct coupling with a demonstrated cost can justify a split on its own.
 Reject incidental similarity and speculative or cross-domain abstractions.
 
+## Confidence
+
+Score confidence in behavior preservation and in the stated gain from 0 to
+100. Use the lower score. Report only findings with confidence >= 75.
+
+- 75. The reviewed code and nearby evidence support a safe, worthwhile refactor.
+- 90. Strong repo evidence supports behavior preservation and the gain.
+- 100. Direct evidence establishes behavior preservation and the gain.
+
 ## Output
 
 Return `No findings.` only after checking all units and resolving candidates.
-Score confidence in both the gain and behavior preservation. Report only
-findings where the lower score is >= 75. At 75, nearby evidence supports both.
-At 100, direct evidence establishes both.
 
 Rank by the size, reach, and recurrence of the gain. Use P0 for removal of a
 recurring architectural or repo-wide barrier. Use P1 for material recurring

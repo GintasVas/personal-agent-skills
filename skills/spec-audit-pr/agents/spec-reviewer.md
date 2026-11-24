@@ -45,13 +45,24 @@ Do the review yourself. Do not invoke a review skill or delegate any part.
 Report candidates that pass the evidence gate as findings. Ask about
 plausible unresolved ambiguities that affect behavior.
 
+## Confidence
+
+Report findings at confidence >= 75. Report questions at confidence >= 75
+that the ambiguity is real and affects behavior.
+
+| Score | Evidence |
+| --- | --- |
+| 0 | Falsified, excluded, or owned by a sibling change |
+| 25 | Possible issue with unresolved authority |
+| 50 | Real issue unlikely to change behavior or tests |
+| 75 | The candidate passes the evidence gate. You searched every required source. The issue affects behavior, tests, or a shipped contract. |
+| 90 | Direct quotes from the target and authority prove the contradiction or gap. |
+| 100 | Verbatim contradiction with no plausible reconciliation |
+
 ## Output
 
 Return `No findings.` only after checking all requirements and resolving
-candidates, with no findings or questions to report. Report items at
-confidence >= 75. At 75 a finding passes the evidence gate, or a question
-has evidence of a material ambiguity. At 90 direct quotes prove the gap.
-At 100 a contradiction has no plausible resolution.
+candidates, with no findings or questions to report.
 
 Merge candidates with the same rule ID, normalized path, and requirement.
 Use the checklist's P0, P1, or P2 and rule ID and name. Order findings P0 to
