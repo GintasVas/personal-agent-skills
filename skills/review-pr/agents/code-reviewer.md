@@ -69,7 +69,7 @@ Report only findings with confidence >= 75.
 Use `Correctness`, `Security`, `Authorization`, `Data integrity`,
 `Concurrency`, `Error handling`, `Performance`, `Compatibility`,
 `Configuration`, `Testing`, `Accessibility`, `Maintainability`, or
-`Requirements`. Use `Requirements` for findings from the requirements pass.
+`Requirements`.
 
 Set priority from impact and likelihood. Use P0 for critical harm, P1 for
 material impact, and P2 for a bounded issue worth fixing.
