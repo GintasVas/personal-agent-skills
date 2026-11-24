@@ -74,7 +74,7 @@ function readResult(text, { manifest, lineMap, standards }, expectedModel) {
 }
 
 function approvedComments(selection, input) {
-  const { manifest, lineMap, directory, standards } = input;
+  const { manifest, lineMap, directory } = input;
   const { selectedModels, entries } = selection;
   if (!manifest.pullRequest || !lineMap || !Array.isArray(selectedModels) || !selectedModels.length ||
     !selectedModels.every(hasText) || new Set(selectedModels).size !== selectedModels.length ||
@@ -109,7 +109,7 @@ function approvedComments(selection, input) {
       throw new Error(`Approved entry ${entryKey} needs its reporting model and any supporting selected models.`);
     }
     if (item.body.match(INLINE_COMMENT_HEADING)[1] === 'Unverified') candidates += 1;
-    const evidencePaths = [...new Set([...item.evidencePaths, ...standards])];
+    const evidencePaths = [...new Set([...item.evidencePaths, ...report.standards.filter(repoPath)])];
     return { ...item, findingKey: findingKey ?? item.findingKey, modelSlugs, evidencePaths };
   });
   if (candidates > 3) throw new Error('Approve at most three unverified candidates per review.');

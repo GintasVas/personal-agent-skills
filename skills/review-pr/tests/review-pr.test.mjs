@@ -303,6 +303,7 @@ test('renders canonical prompts and validates individual candidate approvals', (
     selectedModels: [model],
     entries: [{ result: 'reviewer-1.result', number: 1, modelSlugs: [model] }]
   }));
+  rmSync(standardsPath);
   const approved = JSON.parse(runScript('review-results', 'approve', manifestPath, selectionPath));
   assert.deepEqual(approved.comments, [{
     ...candidate, modelSlugs: [model], evidencePaths: [...candidate.evidencePaths, standard]

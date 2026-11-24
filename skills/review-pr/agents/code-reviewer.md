@@ -27,6 +27,8 @@ Do the review yourself. Do not invoke a review skill or delegate any part.
 2. Reconcile interactions across hunks. Trace changed contracts and data flow.
    Prioritize authorization, persistence, external I/O, concurrency, deploys,
    and errors.
+   For changed navigation, caches, or state, trace relevant first and repeat
+   entry, input changes in place, failures, and refreshes.
    For changed tests or fixtures, trace execution and the external state they use.
 3. Use applicable lenses and repo rules to spot candidates. Check correctness
    (including nulls, races, and leaks), security, functional performance,
