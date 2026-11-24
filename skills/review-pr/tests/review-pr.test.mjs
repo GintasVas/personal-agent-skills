@@ -304,6 +304,9 @@ function pullRequestDependencies(patch, overrides = {}) {
 
 test('posting attributes script findings and marks general comments', () => {
   const patch = addedFilePatch('docs/plan.md', 37, ['first changed line']);
+  const specPath = 'specs/changes/a/change.yaml';
+  const findingKey = `S002:${specPath}:missing schema`;
+  const body = '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare a schema.';
   const posted = [];
 
   postInlineComments(
@@ -311,10 +314,10 @@ test('posting attributes script findings and marks general comments', () => {
       comments: [
         {
           anchor: 'none',
-          body: '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.',
-          evidencePaths: ['openspec/changes/a/.openspec.yaml'],
-          findingKey: 'S002:openspec/changes/a/.openspec.yaml:change configuration',
-          path: 'openspec/changes/a/.openspec.yaml',
+          body,
+          evidencePaths: [specPath],
+          findingKey,
+          path: specPath,
           tool: 'audit_structure.py'
         }
       ],
@@ -340,9 +343,7 @@ test('posting attributes script findings and marks general comments', () => {
 
   assert.equal(
     posted[0].body,
-    '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.\n\nFile: `openspec/changes/a/.openspec.yaml`\n\nFound by: `audit_structure.py`\n\n<!-- agent-finding:' +
-      findingDigest('S002:openspec/changes/a/.openspec.yaml:change configuration') +
-      ' -->'
+    `${body}\n\nFile: \`${specPath}\`\n\nFound by: \`audit_structure.py\`\n\n<!-- agent-finding:${findingDigest(findingKey)} -->`
   );
 });
 

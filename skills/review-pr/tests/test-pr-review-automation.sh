@@ -453,7 +453,8 @@ for skill in "$SIMPLIFY" "$REVIEW"; do
   grep -Fq 'post-inline-pr-comments.mjs' "$skill"
   grep -Fq 'cleanup-review-input.mjs' "$skill"
   grep -Fq 'standard input' "$skill"
-  grep -Fq 'verifies and posts the full batch' "$skill"
+  grep -Fq '"findingKey": "<location and mechanism>"' "$skill"
+  grep -Fq 'Reuse the approved payload on retry.' "$skill"
   grep -Fq 'Bundle a new shared module with only the changed' "$skill"
   grep -Fq 'bounded' "$skill"
 done
@@ -520,7 +521,7 @@ grep -Fq 'Synthesize without discovering new findings.' "$REVIEW"
 grep -Fq 'Merge reports only when the location and mechanism match.' "$REVIEW"
 grep -Fq '"selectedModels": ["<exact slug>", "<exact slug>"]' "$REVIEW"
 grep -Fq '"modelSlugs": ["<exact slug>"]' "$REVIEW"
-grep -Fq 'adds the footer in `selectedModels` order.' "$REVIEW"
+grep -Fq 'Omit the `Found by` footer and finding markers from `body`.' "$REVIEW"
 grep -Fq 'withModelAttribution' "$POST"
 grep -Fq 'Never post' "$REVIEW"
 if grep -Fq 'AskQuestion' "$REVIEW"; then

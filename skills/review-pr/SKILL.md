@@ -41,9 +41,8 @@ node <this-skill-dir>/scripts/prepare-pr-review-input.mjs prepare "<PR>"
 ```
 
 Use the reported `directory` as `REVIEW_DIR`. Use the detached head worktree
-`source` for all PR context, including stack parents. The patch covers the
-declared base-to-head delta. Run any host-required `source` preflight before
-building bundles.
+`source` for all PR context, including stack parents. Run any host-required
+`source` preflight before building bundles.
 
 If prepare fails or does not report `directory`, report the failure and stop.
 Do not construct substitute patches, manifests, line maps, or bundles.
@@ -53,9 +52,8 @@ Do not construct substitute patches, manifests, line maps, or bundles.
 Above 10 changed files or 500 changed lines, give workers bounded bundles
 instead of the full patch. Include changed public interfaces, authentication,
 authorization, persistence, migrations, external I/O, concurrency, deployment
-configuration, and error handling. Group low-risk hunks by directory. Keep
-generated files, lockfiles, and snapshots in the manifest. Bundle each
-reviewable hunk exactly once. Bundle a new shared module with only the changed
+configuration, and error handling. Group low-risk hunks by directory. Bundle
+each reviewable hunk exactly once. Bundle a new shared module with only the changed
 importers needed to understand it.
 
 Use `$REVIEW_DIR/review-bundles.json`. It groups reviewable hunks by
@@ -72,10 +70,9 @@ Verify bundles before launch. Give all verified bundles to every model.
 Each model reviews them in order. Use the generated `review-index.json` and
 per-bundle anchors. The parent does not read the global line map.
 
-## Review changed requirements
+## Review changed specs
 
-Identify changed requirement specs from the manifest and repo conventions.
-Include OpenSpec deltas and other product or API requirements. Skip test files.
+Identify changed specs from the manifest and repo conventions. Skip test files.
 Pass their repo-relative paths and require the worker's requirements pass, even
 for a spec-only PR. Pass any originating spec by path. Save available originating
 issue text in `REVIEW_DIR` and pass its absolute path.
@@ -152,7 +149,8 @@ standard input.
 {
   "selectedModels": ["<exact slug>", "<exact slug>"],
   "comments": [{
-    "body": "<canonical finding body>",
+    "body": "<canonical heading and body>",
+    "findingKey": "<location and mechanism>",
     "modelSlugs": ["<exact slug>"],
     "evidencePaths": ["<repo-relative evidence path>"],
     "path": "<path>",
@@ -163,18 +161,13 @@ standard input.
 }
 ```
 
-List only the jobs that reported each finding in `modelSlugs`. Omit
-the `Found by` footer from `body`. The script verifies model metadata
-and adds the footer in `selectedModels` order.
-Keep each finding's evidence paths. The script rechecks the pinned input
-before posting. It verifies and posts the full batch. It prints one URL per
-comment. Keep the same approved payload on retry. The script skips comments
-it already posted and prints their URLs as `alreadyPosted=<url>`.
+List only the reporting models in `modelSlugs`. Keep the evidence paths.
+Omit the `Found by` footer and finding markers from `body`.
+Set a distinct `findingKey` from each finding's location and mechanism.
+Reuse the approved payload on retry. Report posted URLs and any failure.
 
 Use one selection list for inline and unrelated findings. For an unrelated
-finding, send `anchor: "none"` and omit `line` and `side`. Keep the canonical
-heading with its actual priority and confidence. The script posts it as a
-standalone PR comment.
+finding, send `anchor: "none"` and omit `line` and `side`.
 
 ## Cleanup
 
@@ -184,6 +177,3 @@ decision. Remove it after posting, declining, or rejecting stale findings.
 ```bash
 node <this-skill-dir>/scripts/cleanup-review-input.mjs "<reported-directory>"
 ```
-
-Prepare prunes marked inputs older than 24 hours. To prune now, run
-`cleanup-review-input.mjs --stale`.
