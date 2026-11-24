@@ -13,7 +13,7 @@ Edit or post only on explicit request after showing findings.
 
 ## Select models
 
-Follow [Select models](workflow.md#select-models) before running commands.
+Follow [Select models](workflow.md#select-models).
 
 ## Prepare input
 
@@ -24,9 +24,10 @@ Follow [Select models](workflow.md#select-models) before running commands.
 | PR number or GitHub pull URL | Changed files under `openspec/`, without checkout |
 | Existing change slug or main spec domain | That change or domain |
 
-Reserve `all` and reject other scopes. Follow
-[Prepare input](workflow.md#prepare-input). For a PR with no changes under
-`openspec/`, report that, clean up, and stop.
+Reserve `all` and reject other scopes. Follow [Prepare input](workflow.md#prepare-input).
+For PRs, add `--group-root openspec/changes --group-root openspec/specs` to
+the prepare command. If no files under `openspec/` changed, report that,
+clean up, and stop.
 
 For a local audit, run the command for the selected scope:
 
@@ -83,9 +84,9 @@ worker prompts.
 
 ### Behavioral audit
 
-Pass `<this-skill-dir>/agents/spec-reviewer.md` and the absolute paths to
+Render `<this-skill-dir>/agents/spec-reviewer.md` with the bundled
 [`REFERENCE.md`](REFERENCE.md), [`CHECKLIST.md`](CHECKLIST.md), and
-[`LANES.md`](LANES.md). For local scope, pass the spec manifest.
+[`LANES.md`](LANES.md) paths.
 
 Enable traceability for target changes with `source.md` or on request.
 Name the main spec targets for conformance, or state there are none.
@@ -109,11 +110,10 @@ unnumbered in chat. End with the audited SHA, coverage, and worst finding.
 
 For a PR, if approval is pending, ask
 `Reply "post all", "post findings", "post 1,3", or "post none".`
-`post all` includes questions and unanchored entries. `post findings` excludes
-questions. Keep searched sources for questions in chat.
+`post all` includes all numbered entries. `post findings` selects confirmed
+findings only. Keep searched sources for questions in chat.
 
-Use the [stable finding key](REFERENCE.md#stable-identity). Copy approved
-structural entries unchanged. Their `tool` replaces `modelSlugs`.
+Select structural entries from `structural-findings.json` by index.
 Follow [Post approved findings](workflow.md#post-approved-findings).
 
 ## Cleanup

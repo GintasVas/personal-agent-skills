@@ -1,0 +1,1 @@
+../../../scripts/review/render-reviewer-prompt.mjs

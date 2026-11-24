@@ -89,7 +89,7 @@ check "spec docs drop legacy severity names" \
 check "skill requires explicit invocation" has 'disable-model-invocation: true' "${ORCHESTRATOR}"
 HOSTS="${SKILL_ROOT}/hosts"
 check "skill reads its host file before tools" \
-  has 'Before running commands, read only the matching host guide:' "${WORKFLOW}"
+  has 'Before preparing review input, read only the matching host guide:' "${WORKFLOW}"
 for host in pi cursor-desktop cursor-cli codex other; do
   check "skill links the ${host} host file" \
     bash -c "test -f '${HOSTS}/${host}.md' && grep -Fq '](hosts/${host}.md)' '${WORKFLOW}'"
@@ -102,8 +102,9 @@ check "skill supports Pi" has '/skill:spec-audit-pr' "${ORCHESTRATOR}"
 check "skill loads the spec-reviewer contract" \
   has '<this-skill-dir>/agents/spec-reviewer.md' "${ORCHESTRATOR}"
 check "skill tracks reviewer jobs" \
-  has 'Keep one private job per selected model in selection order.' "${WORKFLOW}"
-check "skill pins reviewer model in prompt" has 'Reviewer model: <exact slug>' "${WORKFLOW}"
+  has 'For each model, record its numbered prompt, final result,' "${WORKFLOW}"
+check "skill pins reviewer model in prompt" \
+  has 'Reviewer model:' "${SKILL_ROOT}/scripts/render-reviewer-prompt.mjs"
 check "skill keeps the parent out of review" has 'The parent does not review.' "${WORKFLOW}"
 check "skill synthesizes without new findings" \
   has 'Synthesize without discovering new findings.' "${WORKFLOW}"
@@ -115,7 +116,7 @@ check "skill verifies PR input before posting" \
   has 'prepare-pr-review-input.mjs verify' "${WORKFLOW}"
 check "skill posts through validated script" has 'post-inline-pr-comments.mjs' "${WORKFLOW}"
 check "skill lets the user exclude review questions" \
-  has '`post findings` excludes' "${ORCHESTRATOR}"
+  has '`post findings` selects confirmed' "${ORCHESTRATOR}"
 check "skill keeps coverage notes in chat" has 'unnumbered in chat.' "${ORCHESTRATOR}"
 check "skill verifies before presenting" has '(workflow.md#verify-and-report)' "${ORCHESTRATOR}"
 check "skill cleans review input" has 'cleanup-review-input.mjs' "${WORKFLOW}"
@@ -132,7 +133,7 @@ check "reviewer does not receive structural reports" lacks 'audit_structure.py' 
 check "reviewer anchors to changed lines" has 'RIGHT side, and full changed line from the anchor file or line map.' "${WORKER}"
 check "reviewer comments are postable" has 'and body postable.' "${WORKER}"
 check "reviewer checks every requirement" \
-  has 'Return `No findings.` only after checking all requirements and resolving' "${WORKER}"
+  has 'Complete the result only after checking all requirements and resolving' "${WORKER}"
 check "reviewer performs the audit directly" \
   has 'Do not invoke a review skill or delegate any part.' "${WORKER}"
 
@@ -160,6 +161,14 @@ node "${SKILL_ROOT}/scripts/structural-findings.mjs" --line-map "${temp_dir}/lin
   "${temp_dir}/structure-invalid.json" > "${temp_dir}/structural-pr.json"
 node "${SKILL_ROOT}/scripts/structural-findings.mjs" \
   "${temp_dir}/structure-invalid.json" > "${temp_dir}/structural-local.json"
+printf '%s\n' '{"results":[{"id":"S008-fixture","severity":"P2","rule_id":"S008","verdict":"VERIFIED","path":"proposal.md","requirement":"New Capabilities","message":"Empty capability subsection."}]}' \
+  > "${temp_dir}/section-result.json"
+printf '%s\n' '{"locations":[{"path":"proposal.md","side":"RIGHT","line":1,"anchor":"## Why"},{"path":"proposal.md","side":"RIGHT","line":8,"anchor":"### New Capabilities"}]}' \
+  > "${temp_dir}/section-map.json"
+node "${SKILL_ROOT}/scripts/structural-findings.mjs" --line-map "${temp_dir}/section-map.json" \
+  "${temp_dir}/section-result.json" > "${temp_dir}/section-finding.json"
+check "section finding anchors on the named changed heading" \
+  has '"anchor": "### New Capabilities"' "${temp_dir}/section-finding.json"
 check "structural findings are postable and attributed to the validator" \
   node --input-type=module - "${temp_dir}/structural-pr.json" "${temp_dir}/structural-local.json" <<EOF
 import { readFileSync } from 'node:fs';

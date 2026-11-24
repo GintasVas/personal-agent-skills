@@ -61,8 +61,8 @@ that the ambiguity is real and affects behavior.
 
 ## Output
 
-Return `No findings.` only after checking all requirements and resolving
-candidates, with no findings or questions to report.
+Complete the result only after checking all requirements and resolving
+candidates.
 
 Merge candidates with the same rule ID, normalized path, and requirement.
 Use the checklist's P0, P1, or P2 and rule ID and name. Order findings P0 to
@@ -82,7 +82,8 @@ Question: ...
 Why it matters: ...
 ```
 
-Return the rule ID, requirement name, and repo-relative `evidencePaths` for
+Use the [stable finding key](../REFERENCE.md#stable-identity). Return the
+rule ID, requirement name, and repo-relative `evidencePaths` for
 all authoritative sources searched. For PRs include `headRefOid` and path.
 Prefer the requirement or scenario heading. Copy the file line, LEFT or
 RIGHT side, and full changed line from the anchor file or line map. Use

@@ -23,8 +23,8 @@ approval for each displayed path, then retry. Never add `--trust` automatically.
 
 ## Launch reviewers
 
-After you verify availability, run each job with Cursor Ask mode against the code root. Write the
-complete prompt for each model to its own numbered file under `REVIEW_DIR`, then run:
+After you verify availability, run each job with Cursor Ask mode against the
+code root using its rendered prompt:
 
 ```bash
 node <this-skill-dir>/scripts/cursor-run-reviewer.mjs \

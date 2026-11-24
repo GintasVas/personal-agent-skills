@@ -38,9 +38,8 @@ If availability verification fails, stop before building bundles.
 
 ## Launch reviewers
 
-Run every reviewer through the pinned CLI runner for its selector, never through a subagent that
-cannot pin the requested model. Write the complete prompt for each model to its own numbered file
-under `REVIEW_DIR`, then run the Cursor runner for a Cursor slug (Ask mode):
+Run each rendered prompt with the pinned CLI runner for its model.
+For a Cursor slug, use Ask mode:
 
 ```bash
 node <this-skill-dir>/scripts/cursor-run-reviewer.mjs \

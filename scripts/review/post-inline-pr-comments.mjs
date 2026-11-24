@@ -128,7 +128,11 @@ export function withModelAttribution(comments, selectedModels) {
       throw new Error(`findingKey for ${location} must be a non-empty string`);
     }
 
-    const digest = comment.findingKey && findingDigest(comment.findingKey);
+    const unverified = typeof comment.body === 'string' && comment.body.startsWith('**[Unverified]');
+    const key = unverified && comment.findingKey
+      ? `unverified:${comment.findingKey}`
+      : comment.findingKey;
+    const digest = key && findingDigest(key);
     const file = isGeneralComment(comment) ? `\n\nFile: \`${comment.path}\`` : '';
     const marker = digest ? `\n\n<!-- agent-finding:${digest} -->` : '';
     return {

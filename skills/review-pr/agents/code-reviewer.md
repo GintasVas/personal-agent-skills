@@ -37,6 +37,9 @@ Do the review yourself. Do not invoke a review skill or delegate any part.
    the mechanism. Verify absence in the code root. Report an unrelated item
    only if this inspection reveals it directly.
 
+Compare material PR title and body claims with the supplied diff and manifest.
+Report verified mismatches in `descriptionNotes`.
+
 Report a demonstrated defect with concrete impact or a proven violation of
 an applicable repo rule. Report proven defects even if no safe fix is known.
 For maintainability, require concrete cost, an applicable rule or established
@@ -69,7 +72,7 @@ Report only findings with confidence >= 75.
 
 ## Output
 
-Return `No findings.` only after checking all hunks and resolving candidates.
+Complete the result only after checking all hunks and resolving candidates.
 
 Use P0 for critical harm, P1 for material impact, and P2 for a bounded issue
 worth fixing. Order findings P0 to P2. Use `Correctness`, `Security`,
@@ -93,7 +96,9 @@ Cost: ...
 Rejected simpler variant: ...
 ```
 
-Return `headRefOid` and path and file line for each item. For inline items,
+Give each comment a `findingKey` from location and mechanism. Mark requirements
+pass comments with `requirementsPass: true`. Give alternatives a location in
+`notes`. Return `headRefOid` and path and file line for each comment. For inline items,
 copy LEFT or RIGHT side and the full changed line from the anchor file or
 line map. For an unrelated item, use `anchor: none`, omit side, and start
 the body with `Unrelated discovered issue.`

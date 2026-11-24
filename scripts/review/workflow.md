@@ -6,7 +6,7 @@ scripts as shown. Do not inspect script source.
 
 ## Select models
 
-Before running commands, read only the matching host guide:
+Before preparing review input, read only the matching host guide:
 
 - [Pi](hosts/pi.md) when `PI_CODING_AGENT=true` or the system prompt names Pi. This takes precedence over Cursor SDK detection.
 - [Cursor desktop](hosts/cursor-desktop.md) or [Cursor Agent CLI](hosts/cursor-cli.md).
@@ -40,7 +40,9 @@ there before building bundles. For local scopes, use the reported repo root.
 
 ## Scope large reviews
 
-Group related units by editing only `hunkIds` in the generated
+Use prepare's file and line totals. A repo can group related paths in
+`.review-groups.json` with `{"groups":{"feature":["api/contract.yml","src/feature/"]}}`.
+A trailing slash matches a directory. Refine `hunkIds` in the generated
 `review-bundles.json`. Assign every reviewable unit exactly once.
 
 ```bash
@@ -56,20 +58,30 @@ anchors. The parent does not read the global line map.
 
 ## Run reviewers
 
-Pass the worker contract, required lens or rule material, applicable writing
-rules, absolute input paths and `code_root`, and `Reviewer model: <exact slug>`.
-For a bundled PR, pass `review-index.json` and `source`. For a small PR, pass
-`patch.diff`, `line-map.json`, `manifest.json`, and `source` by path.
+Put review settings and applicable writing rules in a short context file.
+Pass untrusted text by path.
+Use tracked writing guides in `code_root`. Inline the relevant rules when a
+guide exists only in the caller checkout.
 
-Keep one private job per selected model in selection order. Use separate
-numbered prompt and result files. Launch the prompt directly with the
-host-selected model and code root. Launch concurrently where supported.
-Record the runner session or subagent ID and result against each job.
+```bash
+node <this-skill-dir>/scripts/render-reviewer-prompt.mjs \
+  "$REVIEW_DIR" 1 "<exact slug>" "<worker.md>" "<context.md>"
+```
 
-Before synthesis, require one attributable launch and one complete result for
-each selected model. If any launch or result fails or is missing, report the
-failure and expected and launched counts. Stop synthesis. Show counts only
-on failure. The parent does not review.
+Render before launch. For each model, record its numbered prompt, final result,
+and runner or subagent ID. Launch the rendered prompt verbatim with the exact
+model and code root. Launch concurrently where supported. Save the full
+final result before verification:
+
+```bash
+node <this-skill-dir>/scripts/review-results.mjs verify \
+  "$REVIEW_DIR/manifest.json" "$REVIEW_DIR/reviewer-1.result" "<exact slug>"
+```
+
+Read every verified result before synthesis. Retry incomplete output once when
+the host can resume the worker. If any launch or result remains incomplete,
+report the failure and expected and launched counts. Stop synthesis.
+The parent does not review.
 
 ## Verify and report
 
@@ -89,37 +101,37 @@ evidence paths, recheck it on fresh input. Post only verified entries using the 
 Name the exact models that ran. Use the canonical heading and body. Show
 supporting models and differing priorities or confidence in chat. Keep
 ambiguous matches separate. Synthesize without discovering new findings.
+Show at most three unverified candidates after deduplication, separate from
+confirmed findings. Candidates without changed-line anchors stay in chat.
+Keep rejection notes within the review.
 
 ## Post approved findings
 
 Post only what the user explicitly approved. For local reviews, report in chat.
 
 ```bash
-node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" "$REVIEW_DIR/manifest.json" -
+node <this-skill-dir>/scripts/review-results.mjs approve "$REVIEW_DIR/manifest.json" \
+  "$REVIEW_DIR/approved-selection.json" > "$REVIEW_DIR/approved-comments.json" &&
+node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" \
+  "$REVIEW_DIR/manifest.json" "$REVIEW_DIR/approved-comments.json"
 ```
 
-Pass the approved comments as one JSON object on standard input:
+List the approved entries by source result file and one-based index:
 
 ```json
 {
   "selectedModels": ["<exact slug>", "<exact slug>"],
-  "comments": [{
-    "body": "<canonical heading and body>",
-    "findingKey": "<stable finding identity>",
-    "modelSlugs": ["<reporting model slug>"],
-    "evidencePaths": ["<repo-relative evidence path>"],
-    "path": "<path>",
-    "line": 1,
-    "side": "RIGHT",
-    "anchor": "<full changed line>"
+  "entries": [{
+    "result": "reviewer-1.result",
+    "number": 1,
+    "modelSlugs": ["<reporting model slug>"]
   }]
 }
 ```
 
-For an unanchored entry, set `anchor: "none"` and omit `line` and `side`.
-Use the same selection list for inline and unanchored entries. Pass the raw
-body. The script adds attribution and markers. Reuse the approved payload
-on retry. Report posted URLs, `alreadyPosted=<url>`, and any failure.
+Number all postable entries in one list. Post approved unverified candidates
+individually on their changed lines. Reuse the approved payload on retry.
+Report posted URLs, `alreadyPosted=<url>`, and any failure.
 
 ## Cleanup
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 
 import {
   bundleSkeleton,
@@ -19,6 +20,7 @@ import {
   removeReviewSource,
   reviewInputRoot,
   run,
+  serializeJson,
   sha256,
   pullRequestComparison,
   samePullRequestComparison,
@@ -26,7 +28,11 @@ import {
   writeJsonFile
 } from './lib/review-automation.mjs';
 
-function prepare(reference, outputDirectory) {
+function description(pullRequest) {
+  return { title: pullRequest.title ?? '', body: pullRequest.body ?? '' };
+}
+
+function prepare(reference, outputDirectory, groupRoots) {
   const repositoryRoot = run('git', ['rev-parse', '--show-toplevel']).trim();
   const temporaryRoot = reviewInputRoot(repositoryRoot);
   const before = getPullRequest(reference);
@@ -46,6 +52,7 @@ function prepare(reference, outputDirectory) {
   const lineMapPath = join(directory, 'line-map.json');
   const manifestPath = join(directory, 'manifest.json');
   const bundlesPath = join(directory, 'review-bundles.json');
+  const descriptionPath = join(directory, 'pr-description.json');
   mkdirSync(directory, { recursive: true });
   markReviewInput(directory);
   let source;
@@ -62,7 +69,7 @@ function prepare(reference, outputDirectory) {
     ({ baseRefOid, source } = createReviewSource(repositoryRoot, directory, before));
     pinned = { ...before, baseRefOid };
     const patch = createReviewPatch(repositoryRoot, source);
-    const after = getPullRequest(reference);
+    const after = getPullRequest(reference, { includeDescription: true });
 
     if (!samePullRequestComparison(pullRequestComparison(before), pullRequestComparison(after))) {
       throw new Error(
@@ -87,6 +94,7 @@ function prepare(reference, outputDirectory) {
       },
       comparison: pullRequestComparison(pinned),
       source,
+      descriptionDigest: sha256(serializeJson(description(after))),
       patchDigest,
       patchPath,
       lineMapPath,
@@ -96,7 +104,8 @@ function prepare(reference, outputDirectory) {
     writeFileSync(patchPath, patch, 'utf8');
     writeJsonFile(lineMapPath, parseReviewLineMap(patch));
     writeJsonFile(manifestPath, manifest);
-    writeJsonFile(bundlesPath, bundleSkeleton(manifest));
+    writeJsonFile(bundlesPath, bundleSkeleton(manifest, groupRoots));
+    writeJsonFile(descriptionPath, description(after));
   } catch (error) {
     if (source) {
       removeReviewSource(repositoryRoot, source);
@@ -129,7 +138,7 @@ function verify(reference, manifestPath) {
     `Could not read review manifest "${manifestPath}".`,
     'Pass the manifest written by prepare.'
   );
-  const current = getPullRequest(reference);
+  const current = getPullRequest(reference, { includeDescription: Boolean(manifest.descriptionDigest) });
   const staleFix =
     'Do not post or present the findings as current. Rerun prepare and review the new base-to-head patch.';
 
@@ -146,6 +155,9 @@ function verify(reference, manifestPath) {
   console.log(`baseRefOid=${baseRefOid}`);
   console.log(`headRefOid=${current.headRefOid}`);
   console.log(`patchDigest=${manifest.patchDigest}`);
+  if (manifest.descriptionDigest) {
+    console.log(`descriptionChanged=${sha256(serializeJson(description(current))) !== manifest.descriptionDigest}`);
+  }
 
   if (current.headRefOid !== manifest.comparison.head.oid) {
     const contextChangesPath = join(dirname(resolve(manifestPath)), 'context-changes.txt');
@@ -156,16 +168,26 @@ function verify(reference, manifestPath) {
   }
 }
 
-const [command, reference, path] = process.argv.slice(2);
+const [command, reference, ...args] = process.argv.slice(2);
 
 try {
   if (command === 'prepare' && reference) {
-    prepare(reference, path);
-  } else if (command === 'verify' && reference && path) {
-    verify(reference, path);
+    const { values, positionals } = parseArgs({
+      args,
+      allowPositionals: true,
+      options: { 'group-root': { type: 'string', multiple: true } }
+    });
+    const groupRoots = values['group-root'] ?? [];
+    if (positionals.length > 1 ||
+      groupRoots.some((root) => !root || root.split('/').some((part) => !part || part === '..'))) {
+      throw new Error('Use repository-relative group roots and at most one output directory.');
+    }
+    prepare(reference, positionals[0], groupRoots);
+  } else if (command === 'verify' && reference && args.length === 1) {
+    verify(reference, args[0]);
   } else {
     fail(
-      'Usage: prepare-pr-review-input.mjs prepare <PR> [output-directory] | verify <PR> <manifest-path>.',
+      'Usage: prepare-pr-review-input.mjs prepare <PR> [output-directory] [--group-root <path>]... | verify <PR> <manifest-path>.',
       'Pass a PR number or URL and the required output or manifest path.'
     );
   }

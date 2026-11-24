@@ -36,8 +36,13 @@ review skill or delegate any part.
    Verify absence in the code root. Report an unrelated item only if this
    inspection reveals it directly.
 
+For repeated logic, search the owning package once for equivalent checks.
+Compare input and boundary behavior. Scope and rank the finding by verified
+matches. Record one short reason per rejected candidate in `notes`.
+
 Report a refactor only when you can name its constraint, concrete gain, and
 how it preserves outputs, side effects, order, errors, and public interfaces.
+Reject changes to side effects, including logs.
 Check interchangeability when changing how implementations share a contract.
 Exclude bugs, security and performance defects, test gaps, product logic,
 lint, and formatting.
@@ -72,7 +77,7 @@ Score confidence in behavior preservation and in the stated gain from 0 to
 
 ## Output
 
-Return `No findings.` only after checking all units and resolving candidates.
+Complete the result only after checking all units and resolving candidates.
 
 Rank by the size, reach, and recurrence of the gain. Use P0 for removal of a
 recurring architectural or repo-wide barrier. Use P1 for material recurring
@@ -93,6 +98,7 @@ or module-wide benefit. Use P2 for worthwhile local improvement. Order P0 to P2.
 Name the pattern, refactor, and reason behavior remains unchanged.
 ```
 
+Give each comment a `findingKey` from location and mechanism.
 Return path and file line for each item. For PRs, include `headRefOid`.
 For inline items, copy LEFT or RIGHT side and the full changed line from the
 anchor file or line map. For an unrelated PR item, use `anchor: none` and omit

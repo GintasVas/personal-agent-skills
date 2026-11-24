@@ -12,7 +12,7 @@ or GitHub pull URL if absent.
 
 ## Select models
 
-Follow [Select models](workflow.md#select-models) before running commands.
+Follow [Select models](workflow.md#select-models).
 
 ## Prepare input
 
@@ -29,7 +29,7 @@ importers needed to understand a new shared module. Follow
 
 ## Run reviewers
 
-Pass `<this-skill-dir>/agents/code-reviewer.md` and every section of
+Render `<this-skill-dir>/agents/code-reviewer.md`. The renderer includes all of
 [shaping-lenses.md](shaping-lenses.md), including Common.
 
 Identify changed specs from the manifest and repo conventions. Skip test
@@ -41,8 +41,9 @@ Follow [Run reviewers](workflow.md#run-reviewers).
 
 ## Verify and report
 
-Follow [Verify and report](workflow.md#verify-and-report). Merge reports only
-when location and mechanism match. Enforce the worker's maintainability gate
+Follow [Verify and report](workflow.md#verify-and-report). On
+`descriptionChanged=true`, recheck description notes on fresh input.
+Merge reports only when location and mechanism match. Enforce the worker's maintainability gate
 without turning rejected findings into alternatives.
 
 Separate requirements findings and say what conformance could not be verified.
@@ -52,8 +53,8 @@ List design alternatives separately.
 ## Post approved findings
 
 If approval is pending, ask `Reply "post all", "post 1,3", or "post none".`
-Exclude design alternatives. Build each `findingKey` from location and
-mechanism. Follow [Post approved findings](workflow.md#post-approved-findings).
+Exclude design alternatives and description notes. Follow
+[Post approved findings](workflow.md#post-approved-findings).
 
 ## Cleanup
 
