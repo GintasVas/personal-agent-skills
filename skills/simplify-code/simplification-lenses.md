@@ -15,8 +15,7 @@ Use each lens to identify simplification candidates. Apply the
 - State is stored even though it can derive from existing state.
 - A component or hook mixes rendering or reactive coordination with independent
   policy, reusable computation, or platform mechanics.
-- Data representation conversion creates a value with a lifetime that must be
-  managed.
+- A direct value can replace a managed resource without changing its behavior.
 - A shared-component prop serves one caller instead of a semantic boundary.
 - A child component exists only to shorten its parent.
 
@@ -39,7 +38,7 @@ Use each lens to identify simplification candidates. Apply the
 - Resources, configuration, or pipeline steps repeat across environments.
 - Identifiers, ports, timeouts, flags, or image tags must stay synchronized in
   more than one place.
-- An added resource leaves sibling lifecycle or retention behavior unmodeled.
+- Resources repeat equivalent lifecycle or retention rules that can be shared.
 
 ## Shared library
 

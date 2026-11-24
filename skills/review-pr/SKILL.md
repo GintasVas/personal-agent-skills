@@ -74,19 +74,16 @@ per-bundle anchors. The parent does not read the global line map.
 
 ## Review changed requirements
 
-Before launch, identify changed requirement specs from the manifest and repo
-conventions. Include OpenSpec deltas and other product or API requirement
-documents. Skip test files. When the PR changes specs, pass their paths and
-any available originating issue or spec to each reviewer. Require the
-requirements pass in the worker prompt, even when the PR changes only specs.
-Use the old side of the pinned patch for removed requirements.
+Identify changed requirement specs from the manifest and repo conventions.
+Include OpenSpec deltas and other product or API requirements. Skip test files.
+Pass their repo-relative paths and require the worker's requirements pass, even
+for a spec-only PR. Pass any originating spec by path. Save available originating
+issue text in `REVIEW_DIR` and pass its absolute path.
 
 ## Run reviewers
 
-Classify the changes as UI, service and API, data model, infrastructure and
-pipelines, or shared library. Copy Common and only the matching sections of
-[shaping-lenses.md](shaping-lenses.md) into each worker prompt. Use lenses to
-identify candidates. Repository standards and established patterns take precedence.
+Copy all sections of [shaping-lenses.md](shaping-lenses.md), including Common,
+into each worker prompt.
 
 Keep one private job per selected model, in selection order:
 
@@ -128,14 +125,11 @@ has entries and evidence paths are missing, recheck the finding.
 Use the verified `headRefOid` to post.
 
 Name the exact models that ran. Synthesize without discovering new findings.
-Merge same-anchor reports only when they identify the same mechanism. Show the canonical
-postable comment and supporting models. Keep original wording in chat and
-keep ambiguous reports separate.
-
-A maintainability finding needs a changed anchor, concrete cost, bounded
-correction, and support from a repo standard or established pattern.
-Otherwise, offer a design alternative only if it names the constraint,
-alternative, cost, and rejected simpler variant.
+Merge reports only when the location and mechanism match. Use the canonical
+finding's original wording and heading. Show supporting models and any differing
+priorities or confidence scores in chat. Keep ambiguous reports separate.
+Discard maintainability findings that fail the worker's evidence rules. Do not
+turn them into alternatives.
 
 Report requirements findings separately. State when the evidence cannot
 establish conformance. Keep one numbered list across both groups.
@@ -151,7 +145,7 @@ Post only if this turn asks to.
 node <this-skill-dir>/scripts/post-inline-pr-comments.mjs "<PR>" "<headRefOid>" "$REVIEW_DIR/manifest.json" -
 ```
 
-Pass the selected models and approved inline findings as one JSON object on
+Pass the selected models and approved findings as one JSON object on
 standard input.
 
 ```json
@@ -177,10 +171,10 @@ before posting. It verifies and posts the full batch. It prints one URL per
 comment. Keep the same approved payload on retry. The script skips comments
 it already posted and prints their URLs as `alreadyPosted=<url>`.
 
-`post all` includes approved `Unrelated discovered issue` findings.
-`post 1,3` selects from the same list for inline and unrelated findings.
-Verify the current `headRefOid` before posting an unrelated finding as one
-standalone PR comment. Its first line is `[Unrelated discovered issue] [P1, confidence 85]`.
+Use one selection list for inline and unrelated findings. For an unrelated
+finding, send `anchor: "none"` and omit `line` and `side`. Keep the canonical
+heading with its actual priority and confidence. The script posts it as a
+standalone PR comment.
 
 ## Cleanup
 

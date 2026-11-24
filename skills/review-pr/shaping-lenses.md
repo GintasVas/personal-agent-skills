@@ -1,7 +1,7 @@
 # Review shaping lenses
 
-Use each lens to identify a candidate. Apply the evidence requirements in
-`SKILL.md` before reporting.
+Use each lens to identify a candidate. Apply the
+[worker's evidence rules](agents/code-reviewer.md#review) before reporting.
 
 ## Common
 
@@ -28,6 +28,7 @@ Use each lens to identify a candidate. Apply the evidence requirements in
 - An interface grows a method unrelated implementations and fakes must absorb.
 - Error mapping, logging, retrying, timeouts, or pagination diverge from
   sibling endpoints.
+- A retry repeats a write or other effect that must happen once.
 - A loop runs a query or read port call once per item (N+1) where one
   set-based call would do.
 
@@ -37,6 +38,7 @@ Use each lens to identify a candidate. Apply the evidence requirements in
 - Canonical identifiers or ordered domain values duplicate schema and code.
 - A nullable field stands in for a missing relation or state.
 - A migration cannot safely rerun or ignores existing rows.
+- Old or new code fails against the schema during a rolling deploy.
 - An index duplicates the prefix of an existing index.
 - A rule has two sources of truth in schema and application code.
 

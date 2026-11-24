@@ -26,15 +26,22 @@ Do the review yourself. Do not invoke a review skill or delegate any part of the
 
 ## Review
 
-1. Read all supplied bundles, the full patch, or the whole-file manifest. Triage every changed unit. Record `finding`, `no finding`, or `candidate under verification` privately.
-2. After reading all hunks, reconcile their interactions. Trace changed public interfaces, data flow, state or persistence, error propagation, and framework boundaries.
-3. Resolve every candidate. Inspect a changed definition, one direct caller or consumer, and one relevant test or analogue only to prove a pattern or preserve behavior. Avoid broad pattern searches. Report an unrelated simplification only if this inspection directly reveals it. Label it `Unrelated discovered issue`. Do not search for more.
+1. Read all supplied hunks. For paths scope, read each whole-file snapshot
+   from the manifest or supplied bundles. Use each hunk or whole file as a
+   review unit. Record `finding`, `no finding`, or `candidate under verification`
+   privately for each unit.
+2. Reconcile interactions across units. Trace public interfaces, data flow,
+   state or persistence, error propagation, and framework boundaries.
+3. Resolve every candidate. Inspect a scoped definition, one direct caller or
+   consumer, and one relevant test or analogue only to prove a pattern or
+   preserve behavior. Avoid broad searches. Report an unrelated simplification
+   only if this inspection directly reveals it. Do not search for more.
 4. Record why each `no finding` unit has no worthwhile simplification.
 
 Use the supplied lenses to spot candidates. For each finding, name the constraint,
 the concrete gain, and how the refactor preserves outputs, side effects, order,
 errors, and public interfaces. Exclude bugs, security issues, performance defects,
-test gaps, and product logic.
+test gaps, product logic, lint, and formatting.
 
 | Type | Candidate |
 | --- | --- |
@@ -43,7 +50,7 @@ test gaps, and product logic.
 | `Standardize` | Equivalent code takes competing forms. Name the established form. |
 | `Inject` | Policy likely to vary at a stable boundary. Name the likely variation and evidence from changed code, requirements, or a local analogue. Explain how the seam keeps change local. |
 | `Simplify` | Redundant branches, wrappers, state, conversions, nesting, comments, or abstractions. |
-| `Delete` | Changed code that a proposed simplification makes obsolete. |
+| `Delete` | In-scope code that a proposed simplification makes obsolete. |
 
 For `Inject`, prefer the smallest input, callback, component, strategy, or port
 over central branches, copied code, or a broad framework or DI container.
@@ -79,12 +86,12 @@ line-count-only rewrites. Apply SOLID where it keeps likely change local.
 
 ## Output
 
-Score behavior preservation and gain from 0 to 100. Report only findings with
-confidence >= 75.
+Score confidence in behavior preservation and in the stated gain from 0 to
+100. Use the lower score. Report only findings with confidence >= 75.
 
-- 75. Changed and nearby code supports a likely safe, worthwhile refactor.
-- 90. Strong repository evidence supports safety and reuse.
-- 100. Evidence directly demonstrates the duplicate or established replacement.
+- 75. The reviewed code and nearby evidence support a safe, worthwhile refactor.
+- 90. Strong repo evidence supports behavior preservation and the gain.
+- 100. Direct evidence establishes behavior preservation and the gain.
 
 Order findings P0 to P2 by gain. P0 removes a recurring architectural or repository-wide barrier.
 P1 creates a module-wide seam or standardizes a repeated pattern.
@@ -96,8 +103,11 @@ P2 reduces local complexity, duplication, or maintenance cost.
 Name the pattern, refactor, and reason behavior remains unchanged.
 ```
 
-For PRs, include `headRefOid`. Return path, file line, LEFT or RIGHT side, and
-the full changed line as anchor separately. Use the bundle anchor file or line map.
+Return path and file line for each finding. Start the body of an unrelated
+finding with `Unrelated discovered issue.` For PRs, include `headRefOid`. For
+inline PR findings, add LEFT or RIGHT side and the full changed line from the
+anchor file or line map. For unrelated PR findings, set `anchor` to `none` and
+omit side. Use the same heading for both.
 For each finding, return repo-relative `evidencePaths` for every file that
 supports the finding or defines the behavior it preserves. Include unchanged paths.
 Keep source line numbers out of the comment. The heading and body must be
