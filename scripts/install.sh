@@ -4,6 +4,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$REPO/skills"
+NO_INSTALL="$(cat "$REPO/no-install.txt")"
 BACKUP="$HOME/.local/state/personal-agent-skills/backups/$(date +%Y%m%dT%H%M%S)"
 MODE=install QUIET=0
 for arg in "$@"; do
@@ -37,11 +38,12 @@ act() {
   return 0
 }
 backup_cmd() { printf 'mkdir -p %q && mv %q %q' "$BACKUP/$2" "$1" "$BACKUP/$2/"; }
+skip_install() { grep -Fqx -- "$1" <<< "$NO_INSTALL"; }
 
 for skill in "$SRC"/*/; do
   skill="${skill%/}" name="$(basename "$skill")"
   [[ -f "$skill/SKILL.md" ]] || continue
-  [[ ! -f "$skill/.no-install" ]] || continue
+  if skip_install "$name"; then continue; fi
   for dir in "${LINK_DIRS[@]}"; do
     dest="$dir/$name" label="$(echo "$dir" | tr '/ ' '__')"
     if [[ -L "$dest" && "$(readlink "$dest")" == "$skill" ]]; then continue; fi
@@ -64,7 +66,9 @@ for dir in "${LINK_DIRS[@]}"; do
   for link in "$dir"/*; do
     [[ -L "$link" ]] || continue
     target="$(readlink "$link")"
-    if [[ "$target" == "$SRC/"* && ( ! -d "$target" || -f "$target/.no-install" ) ]]; then
+    if [[ "$target" == "$SRC/"* ]] && {
+      [[ ! -d "$target" ]] || skip_install "${target##*/}"
+    }; then
       act "prune $link" "rm $(printf %q "$link")"
     fi
   done
