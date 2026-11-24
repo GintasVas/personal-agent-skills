@@ -43,8 +43,7 @@ Exclude bugs, security and performance defects, test gaps, product logic,
 lint, and formatting.
 
 Prefer direct code. An `Extract` or `Simplify` must remove more concepts than it
-adds. Skip wrappers that only forward props or callbacks and generic helpers
-for three or fewer one-line sites. Keep required setup steps explicit and in order.
+adds. Keep required setup steps explicit and in order.
 
 To split responsibilities, identify independent reasons to change, what each
 part owns, and dependency direction. Keep adapters focused on translation and
