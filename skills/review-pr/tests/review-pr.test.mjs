@@ -225,24 +225,14 @@ test('posting validates the whole batch before the first comment', () => {
           reference: '123',
           selectedModels: SELECTED_MODELS
         },
-        {
+        pullRequestDependencies(patch, {
           createComment() {
             postedComments += 1;
             return {
               html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
             };
-          },
-          getVerifiedInput() {
-            return { patch, contextChanges: [] };
-          },
-          getPullRequest() {
-            return {
-              headRefOid: 'abc123',
-              number: 123,
-              url: 'https://github.com/example-org/example-app/pull/123'
-            };
           }
-        }
+        })
       ),
     /anchor does not match/
   );
@@ -260,24 +250,14 @@ test('posting adds model attribution in selected-model order', () => {
       reference: '123',
       selectedModels: SELECTED_MODELS
     },
-    {
+    pullRequestDependencies(patch, {
       createComment(_repository, _pullRequestNumber, payload) {
         posted.push(payload);
         return {
           html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
         };
-      },
-      getVerifiedInput() {
-        return { patch, contextChanges: [] };
-      },
-      getPullRequest() {
-        return {
-          headRefOid: 'abc123',
-          number: 123,
-          url: 'https://github.com/example-org/example-app/pull/123'
-        };
       }
-    }
+    })
   );
 
   assert.equal(
@@ -415,7 +395,7 @@ test('reports each posted URL before a later posting failure', () => {
           reference: '123',
           selectedModels: SELECTED_MODELS
         },
-        {
+        pullRequestDependencies(patch, {
           createComment() {
             postedComments += 1;
 
@@ -427,20 +407,10 @@ test('reports each posted URL before a later posting failure', () => {
               html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
             };
           },
-          getVerifiedInput() {
-            return { patch, contextChanges: [] };
-          },
-          getPullRequest() {
-            return {
-              headRefOid: 'abc123',
-              number: 123,
-              url: 'https://github.com/example-org/example-app/pull/123'
-            };
-          },
           onPosted(url) {
             reportedUrls.push(url);
           }
-        }
+        })
       ),
     /GitHub API unavailable/
   );

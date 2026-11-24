@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import {
+  REVIEW_DIFF_ARGS,
   assertPatchCoverage,
   bundleSkeleton,
   classifyPath,
@@ -67,18 +68,7 @@ function scopedPaths(root, paths) {
 }
 
 function changesPatch(root, paths) {
-  const diff = [
-    '-C',
-    root,
-    '-c',
-    'core.quotePath=true',
-    'diff',
-    '--no-ext-diff',
-    '--no-color',
-    '--no-textconv',
-    '--no-relative',
-    '--find-renames'
-  ];
+  const diff = ['-C', root, ...REVIEW_DIFF_ARGS];
   const diffArguments = [
     ...diff,
     '--no-indent-heuristic',

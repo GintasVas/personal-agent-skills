@@ -13,6 +13,10 @@ import {
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 export const MAX_BUFFER_BYTES = 64 * 1024 * 1024;
+export const REVIEW_DIFF_ARGS = [
+  '-c', 'core.quotePath=true', 'diff', '--no-ext-diff', '--no-textconv',
+  '--no-color', '--no-relative', '--find-renames'
+];
 const STALE_REVIEW_INPUT_MS = 24 * 60 * 60 * 1000;
 const REVIEW_INPUT_PREFIX = 'review-';
 const REVIEW_INPUT_MARKER = '.agent-review-input';
@@ -258,7 +262,7 @@ export function createReviewSource(repositoryRoot, directory, pullRequest) {
   }
 }
 
-export function compareWithCurrentPullRequest(repositoryRoot, manifest, current) {
+function compareWithCurrentPullRequest(repositoryRoot, manifest, current) {
   const location = reviewSourceLocation(dirname(resolve(manifest.source.worktreePath)));
   const refs = {
     baseRef: location.verifyBaseRef,
@@ -281,6 +285,7 @@ export function compareWithCurrentPullRequest(repositoryRoot, manifest, current)
             '-C',
             repositoryRoot,
             'diff',
+            '--no-renames',
             '--name-only',
             '-z',
             manifest.source.temporaryRef,
@@ -324,14 +329,7 @@ export function createReviewPatch(repositoryRoot, source, { namesOnly = false } 
   return run('git', [
     '-C',
     repositoryRoot,
-    '-c',
-    'core.quotePath=true',
-    'diff',
-    '--no-ext-diff',
-    '--no-textconv',
-    '--no-color',
-    '--no-relative',
-    '--find-renames',
+    ...REVIEW_DIFF_ARGS,
     ...(namesOnly ? ['--name-only', '-z'] : [
       '--binary', '--full-index', '--diff-algorithm=myers', '--no-indent-heuristic',
       '--src-prefix=a/', '--dst-prefix=b/', '--unified=3', '--inter-hunk-context=0',

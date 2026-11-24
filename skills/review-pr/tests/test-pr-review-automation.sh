@@ -89,6 +89,9 @@ if [[ "${arguments[0]:-}" == "diff" && " ${arguments[*]} " == *" --name-only "* 
     done
   else
     printf '%b' "${FAKE_CONTEXT_CHANGES:-}" | tr '\n' '\0'
+    if [[ -n "${FAKE_CONTEXT_RENAMED_FROM:-}" && " ${arguments[*]} " == *" --no-renames "* ]]; then
+      printf '%s\0' "$FAKE_CONTEXT_RENAMED_FROM"
+    fi
   fi
   exit 0
 fi
@@ -264,13 +267,15 @@ FAKE_PATCH_PREFIX='diff --git a/src/new.ts b/src/new.ts\n' \
 
 write_pull_request base0123456789 fedcba9876543210
 FAKE_HEAD_OID=fedcba9876543210 \
-  FAKE_CONTEXT_CHANGES='src/example.ts\ndocs/context.md\n' \
+  FAKE_CONTEXT_CHANGES='src/example.ts\ndocs/renamed-context.md\n' \
+  FAKE_CONTEXT_RENAMED_FROM='docs/context.md' \
   node "$PREPARE" verify 42 "${REVIEW_DIRECTORY}/manifest.json" \
   > "${TMP}/drift-verify.out"
 grep -Fq 'headRefOid=fedcba9876543210' "${TMP}/drift-verify.out"
 grep -Fq 'pinnedHeadRefOid=0123456789abcdef' "${TMP}/drift-verify.out"
-grep -Fq 'contextChanges=1' "${TMP}/drift-verify.out"
+grep -Fq 'contextChanges=2' "${TMP}/drift-verify.out"
 grep -Fxq 'docs/context.md' "${REVIEW_DIRECTORY}/context-changes.txt"
+grep -Fxq 'docs/renamed-context.md' "${REVIEW_DIRECTORY}/context-changes.txt"
 write_pull_request base0123456789
 
 write_pull_request stale-github-base
@@ -397,7 +402,8 @@ FAKE_PATCH_PREFIX='diff --git a/src/new.ts b/src/new.ts\n' \
 
 write_pull_request base0123456789 fedcba9876543210
 jq '.comments[0].evidencePaths = ["docs/context.md"]' "${TMP}/comments.json" > "${TMP}/context-comment.json"
-FAKE_HEAD_OID=fedcba9876543210 FAKE_CONTEXT_CHANGES='docs/context.md\n' \
+FAKE_HEAD_OID=fedcba9876543210 FAKE_CONTEXT_CHANGES='docs/renamed-context.md\n' \
+  FAKE_CONTEXT_RENAMED_FROM='docs/context.md' \
   expect_failure 'Review context changed' \
   node "$POST" 42 fedcba9876543210 "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/context-comment.json"
 write_pull_request base0123456789

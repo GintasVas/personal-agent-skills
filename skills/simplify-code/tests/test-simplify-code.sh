@@ -118,7 +118,8 @@ grep -Fq 'For a PR, verify the pinned input before presenting.' "$ORCHESTRATOR"
 grep -Fq "'--diff-algorithm=myers'" "$LOCAL_PREPARE"
 grep -Fq "'--no-indent-heuristic'" "$LOCAL_PREPARE"
 grep -Fq "'--unified=3'" "$LOCAL_PREPARE"
-grep -Fq "'--no-textconv'" "$LOCAL_PREPARE"
+grep -Fq '...REVIEW_DIFF_ARGS' "$LOCAL_PREPARE"
+grep -Fq "'--no-textconv'" "${SKILL_DIR}/scripts/lib/review-automation.mjs"
 if grep -Fq '[P1, confidence 85]:' "$ORCHESTRATOR"; then
   echo "expected simplify-code posting instructions to use the validated format" >&2
   exit 1
