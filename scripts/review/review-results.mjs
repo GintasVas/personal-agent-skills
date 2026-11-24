@@ -23,7 +23,15 @@ function repoPath(path) {
   return hasText(path) && !isAbsolute(path) && !path.split('/').includes('..');
 }
 
-function readResult(text, manifest, lineMap, standards, expectedModel) {
+function loadPinnedInput(manifestPath) {
+  const manifest = readJson(manifestPath);
+  const lineMap = manifest.lineMapPath && readJson(manifest.lineMapPath);
+  if (manifest.pullRequest && !lineMap) throw new Error('The PR manifest needs its pinned line map.');
+  const directory = dirname(resolve(manifestPath));
+  return { manifest, lineMap, directory, standards: requiredReviewStandards(directory, manifest) };
+}
+
+function readResult(text, { manifest, lineMap, standards }, expectedModel) {
   const raw = text.trim();
   const fences = raw.match(/^```/gm);
   const block = fences?.length === 2
@@ -65,7 +73,8 @@ function readResult(text, manifest, lineMap, standards, expectedModel) {
   return result;
 }
 
-function approvedComments(selection, manifest, lineMap, directory, standards) {
+function approvedComments(selection, input) {
+  const { manifest, lineMap, directory, standards } = input;
   const { selectedModels, entries } = selection;
   if (!manifest.pullRequest || !lineMap || !Array.isArray(selectedModels) || !selectedModels.length ||
     !selectedModels.every(hasText) || new Set(selectedModels).size !== selectedModels.length ||
@@ -87,7 +96,7 @@ function approvedComments(selection, manifest, lineMap, directory, standards) {
       const path = join(directory, result);
       results.set(result, structural
         ? { comments: readJson(path).findings }
-        : readResult(readFileSync(path, 'utf8'), manifest, lineMap, standards));
+        : readResult(readFileSync(path, 'utf8'), input));
     }
 
     const report = results.get(result);
@@ -119,6 +128,29 @@ function cursorFinalMessage(transcriptPath) {
   return content[0].text;
 }
 
+function jsonObjectLength(text) {
+  let depth = 0;
+  for (const match of text.matchAll(/"(?:[^"\\]|\\.)*"|[{}]/g)) {
+    if (match[0] === '{') depth += 1;
+    if (match[0] === '}') {
+      depth -= 1;
+      if (depth === 0) return match.index + 1;
+    }
+  }
+  return 0;
+}
+
+function transcriptResult(text) {
+  const fence = text.match(/^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*$/m);
+  const start = fence?.index ?? text.search(/^[ \t]*\{/m);
+  const length = fence?.[0].length ?? (start < 0 ? 0 : jsonObjectLength(text.slice(start)));
+  const outside = `${text.slice(0, start)}\n${text.slice(start + length)}`;
+  if (!length || /^(?:```|[ \t]*\{)/m.test(outside)) {
+    throw new Error('Cursor transcript must contain one unambiguous JSON result.');
+  }
+  return fence?.[1] ?? text.slice(start, start + length);
+}
+
 const [command, path, argument, option, line] = process.argv.slice(2);
 try {
   if (command === 'anchor' && path && argument && ['LEFT', 'RIGHT'].includes(option) && /^[1-9]\d*$/.test(line ?? '')) {
@@ -127,18 +159,14 @@ try {
     if (!match) throw new Error('No matching changed-line anchor.');
     process.stdout.write(serializeJson(match));
   } else if (['verify', 'approve', 'capture'].includes(command) && path && argument) {
-    const manifest = readJson(path);
-    const lineMap = manifest.lineMapPath && readJson(manifest.lineMapPath);
-    if (manifest.pullRequest && !lineMap) throw new Error('The PR manifest needs its pinned line map.');
-    const directory = dirname(resolve(path));
-    const standards = requiredReviewStandards(directory, manifest);
+    const input = loadPinnedInput(path);
     if (command === 'verify' && hasText(option)) {
-      const result = readResult(readFileSync(argument, 'utf8'), manifest, lineMap, standards, option);
+      const result = readResult(readFileSync(argument, 'utf8'), input, option);
       console.log(`verified=${result.comments.length}`);
     } else if (command === 'approve') {
-      process.stdout.write(serializeJson(approvedComments(readJson(argument), manifest, lineMap, directory, standards)));
+      process.stdout.write(serializeJson(approvedComments(readJson(argument), input)));
     } else if (command === 'capture' && hasText(option) && hasText(line)) {
-      const result = readResult(cursorFinalMessage(argument), manifest, lineMap, standards, line);
+      const result = readResult(transcriptResult(cursorFinalMessage(argument)), input, line);
       writeFileSync(option, serializeJson(result), { flag: 'wx' });
       console.log(`captured=${option}`);
     } else {

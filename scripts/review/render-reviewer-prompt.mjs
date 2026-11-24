@@ -69,7 +69,7 @@ try {
       `Look up an anchor with: node "${join(skillDir, 'scripts/review-results.mjs')}" anchor "<map>" "<path>" "<LEFT|RIGHT>" "<line>".`,
       'Query the bundle anchor file or line map by location. Keep the full map out of context.',
       'Use the applicable repository standards and list the sources you actually read.',
-      'Produce one self-contained final JSON object in the result channel named by the host. Put summaries in notes and include every result and its metadata.',
+      'Return only one self-contained final JSON object. If the host permits a result file, write the object there. Put summaries in notes and include every result and its metadata.',
       'For input errors, return an object with inputError and the reason. Otherwise use this result shape:',
       JSON.stringify({ model, ...identity, standards: [], comments: [], notes: [], descriptionNotes: [] }),
       'Put every finding, question, and unverified candidate in comments, with body, findingKey, path, and evidencePaths. Include scope-specific fields from the worker contract.',

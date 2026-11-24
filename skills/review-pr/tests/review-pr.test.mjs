@@ -234,6 +234,7 @@ test('renders canonical prompts and validates individual candidate approvals', (
   assert.ok(!prompt.includes('Unexpected PR body text.'));
   assert.ok(prompt.includes('Use the repository writing rules.'));
   assert.ok(prompt.includes(`["${standard}"]`));
+  assert.ok(prompt.includes('Return only one self-contained final JSON object.'));
   assert.equal(
     JSON.parse(runScript('review-results', 'anchor', lineMapPath, 'docs/plan.md', 'RIGHT', '37')).anchor,
     'first changed line'
@@ -270,15 +271,24 @@ test('renders canonical prompts and validates individual candidate approvals', (
     () => runScript('review-results', 'verify', manifestPath, resultPath, SELECTED_MODELS[1]),
     /exact model/
   );
-  const assistant = { role: 'assistant', message: { content: [{ type: 'text', text: fencedResult }] } };
+  const assistant = (text) => ({ role: 'assistant', message: { content: [{ type: 'text', text }] } });
   const turnEnded = { type: 'turn_ended', status: 'success' };
-  const capture = () => runScript('review-results', 'capture', manifestPath, transcriptPath, capturedPath, model);
-  writeFileSync(transcriptPath, JSON.stringify(assistant));
-  assert.throws(capture, /successful turn end/);
-  writeFileSync(transcriptPath, [assistant, turnEnded].map((record) => JSON.stringify(record)).join('\n'));
+  const capture = (path = capturedPath) => runScript('review-results', 'capture', manifestPath, transcriptPath, path, model);
+  writeFileSync(transcriptPath, JSON.stringify(assistant(fencedResult)));
+  assert.throws(() => capture(), /successful turn end/);
+  const writeTranscript = (text) => {
+    writeFileSync(transcriptPath, [assistant(text), turnEnded].map((record) => JSON.stringify(record)).join('\n'));
+  };
+  writeTranscript(`${fencedResult}\n\n${JSON.stringify(result)}`);
+  assert.throws(() => capture(), /one unambiguous JSON result/);
+  writeTranscript(`Review complete.\n\n${fencedResult}\n\nReasoning summary after the result.`);
   assert.match(capture(), /captured=/);
   assert.deepEqual(JSON.parse(readFileSync(capturedPath, 'utf8')), result);
-  assert.throws(capture, /EEXIST/);
+  assert.throws(() => capture(), /EEXIST/);
+  const barePath = join(directory, 'bare.result');
+  writeTranscript(`${JSON.stringify(result)}\n\nReasoning summary after the result.`);
+  assert.match(capture(barePath), /captured=/);
+  assert.deepEqual(JSON.parse(readFileSync(barePath, 'utf8')), result);
 
   writeFileSync(selectionPath, JSON.stringify({
     selectedModels: [model],
