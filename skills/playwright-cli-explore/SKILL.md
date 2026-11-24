@@ -12,7 +12,8 @@ metadata:
 
 > GintasVas modified this file from Microsoft's Playwright CLI skill. See [LICENSE](LICENSE).
 
-Use the bundled launcher for every CLI command. It requires Node.js and npm.
+Use the bundled launcher for every CLI command. It requires Node.js 20 or later.
+It tries `npx` first, then `pnpm`, then `bunx`.
 Use installed stable Chrome or Edge with the sandbox enabled. Keep the browser
 updated. If it fails to open with the sandbox enabled, report the blocker.
 Never weaken protection or use a pinned browser for external sites.
