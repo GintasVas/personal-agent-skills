@@ -22,29 +22,20 @@ test ! -f "${SKILL_DIR}/../code-simplifier/SKILL.md"
 
 LENSES="$SKILL_DIR/simplification-lenses.md"
 for text in 'name: simplify-code' 'disable-model-invocation: true' '/skill:simplify-code' \
-  '<this-skill-dir>/agents/code-simplifier.md' '[simplification-lenses.md](simplification-lenses.md), including Common.' \
-  'whole-file manifest for the selected scope.' 'digest differs.' \
+  '<this-skill-dir>/agents/code-simplifier.md' '](simplification-lenses.md)' \
+  'prepare-local-simplify-input.mjs paths' 'Post only after explicit approval.' \
   'Reply "post all", "post 1,3", or "post none".'; do
   grep -Fq "$text" "$ORCHESTRATOR"
 done
-for text in '| Bundled PR | Detached head `source` and review index with `headRefOid` |' \
-  '| Small PR | Detached head `source`, patch, line map, and manifest with `headRefOid` |' \
-  '| Current changes | Caller repo root, patch, and patch digest |' \
-  '| Paths | Caller repo root, whole-file manifest, and input digest |' \
-  'Return an input error if required input or any materialized bundle is missing.' \
-  'Read every supplied hunk or whole-file snapshot for paths scope.' \
-  'Reconcile interactions across units.' 'Verify absence in the code root.' \
-  'Complete the result only after checking all units and resolving candidates.' \
-  'cohesive state machines.' 'Check interchangeability' 'likely variation' \
-  'A second caller or planned feature is optional.' 'Use the lower score. Report only findings with confidence >= 75.' \
-  'Rank by the size, reach, and recurrence of the gain.' '| `Delete` | Remove in-scope code the refactor makes obsolete. |' \
-  'Exclude bugs, security and performance defects, test gaps, product logic,' \
-  '**[P1] - Extract - confidence 92:**' 'anchor file or line map.' 'Unrelated discovered issue.'; do
+for text in 'For path scope, read the whole-file' 'triage every changed' \
+  'After every supplied hunk has been read' 'reconcile interactions across' \
+  'Resolve every candidate before returning.' 'Preserve outputs, side effects, ordering, errors' \
+  'Do not invoke a review skill or delegate the review.' 'confidence >= 75' \
+  'Needs verification:' 'likely variation' 'Do not report bugs, security issues' \
+  '**[P1] - Extract - confidence 92:**' 'bundle anchor file' 'Unrelated discovered issue'; do
   grep -Fq "$text" "$WORKER"
 done
-grep -Fq 'focused hooks for reusable reactive work.' "$LENSES"
-grep -Fq 'distinct semantic or behavioral' "$LENSES"
-diff -u <(grep '^## ' "$SKILL_DIR/workflow.md") <(grep '^## ' "$ORCHESTRATOR")
+grep -Fq 'semantic boundary' "$LENSES"
 grep -Fq "'--diff-algorithm=myers'" "$LOCAL_PREPARE"
 grep -Fq "'--no-indent-heuristic'" "$LOCAL_PREPARE"
 grep -Fq "'--unified=3'" "$LOCAL_PREPARE"

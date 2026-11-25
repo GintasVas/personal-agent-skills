@@ -20,8 +20,8 @@ local installation, add its directory name to [`no-install.txt`](no-install.txt)
 Use one name per line. Run `scripts/install.sh` to update the links.
 Keep skills harness-neutral; reference bundled files as `<this-skill-dir>/...`.
 
-`review-pr`, `simplify-code`, and `spec-audit-pr` link to shared scripts,
-workflow, and host guidance in [`scripts/review/`](scripts/review/). Edit that copy to
+`review-pr`, `simplify-code`, and `spec-audit-pr` link to shared scripts and
+host guidance in [`scripts/review/`](scripts/review/). Edit that copy to
 update all three skills. Clone the repository to keep the links intact.
 To share one skill as a standalone directory, copy it with `cp -RL` so it
 includes the linked files.

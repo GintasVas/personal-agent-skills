@@ -20,7 +20,7 @@ import {
 const FINDING_MARKER = /<!-- agent-finding:([0-9a-f]{12}) -->/g;
 
 const defaultDependencies = {
-  createComment(repository, pullRequestNumber, payload) {
+  createReview(repository, pullRequestNumber, payload) {
     return JSON.parse(
       run(
         'gh',
@@ -28,13 +28,22 @@ const defaultDependencies = {
           'api',
           '--method',
           'POST',
-          `repos/${repository}/pulls/${pullRequestNumber}/comments`,
+          `repos/${repository}/pulls/${pullRequestNumber}/reviews`,
           '--input',
           '-'
         ],
         JSON.stringify(payload)
       )
     );
+  },
+  reviewCommentUrls(repository, pullRequestNumber, reviewId) {
+    return run('gh', [
+      'api',
+      '--paginate',
+      `repos/${repository}/pulls/${pullRequestNumber}/reviews/${reviewId}/comments`,
+      '--jq',
+      '.[].html_url'
+    ]).split('\n').filter(Boolean);
   },
   createGeneralComment(repository, pullRequestNumber, payload) {
     return JSON.parse(
@@ -155,6 +164,34 @@ function postedFindings(dependencies, repository, pullRequestNumber) {
   return posted;
 }
 
+function postReview({ repository, pullRequest, comments }, dependencies) {
+  const review = dependencies.createReview(repository, pullRequest.number, {
+    body: 'Review findings',
+    commit_id: pullRequest.headRefOid,
+    event: 'COMMENT',
+    comments: comments.map(({ body, path, line, side }) => ({ body, path, line, side }))
+  });
+
+  if (!Number.isSafeInteger(review.id) || !review.html_url?.includes('#pullrequestreview-')) {
+    throw new Error('GitHub did not return a submitted review. Check the PR before retrying.');
+  }
+
+  try {
+    const urls = dependencies.reviewCommentUrls(repository, pullRequest.number, review.id);
+    if (urls.length !== comments.length || urls.some((url) => !url.includes('#discussion_r'))) {
+      throw new Error('GitHub did not return all inline comment URLs.');
+    }
+    for (const url of urls) {
+      dependencies.onPosted?.(url);
+    }
+  } catch (error) {
+    dependencies.onPosted?.(review.html_url);
+    throw new Error(`GitHub submitted the review, but listing its comments failed: ${error.message}`, {
+      cause: error
+    });
+  }
+}
+
 export function postInlineComments(
   { comments, expectedHeadRefOid, manifest, reference, selectedModels },
   dependencies = defaultDependencies
@@ -187,36 +224,29 @@ export function postInlineComments(
     ? postedFindings(dependencies, repository, pullRequest.number)
     : new Map();
 
-  for (const comment of attributedComments) {
+  const seen = new Set();
+  const pending = attributedComments.filter((comment) => {
     if (comment.digest && posted.has(comment.digest)) {
       dependencies.onSkipped?.(posted.get(comment.digest));
-      continue;
+      return false;
     }
+    if (!comment.digest) return true;
+    if (seen.has(comment.digest)) return false;
+    seen.add(comment.digest);
+    return true;
+  });
 
-    const general = isGeneralComment(comment);
-    const response = general
-      ? dependencies.createGeneralComment(repository, pullRequest.number, {
-          body: comment.body
-        })
-      : dependencies.createComment(repository, pullRequest.number, {
-          body: comment.body,
-          commit_id: expectedHeadRefOid,
-          path: comment.path,
-          line: comment.line,
-          side: comment.side
-        });
+  const inline = pending.filter((comment) => !isGeneralComment(comment));
+  if (inline.length > 0) {
+    postReview({ repository, pullRequest, comments: inline }, dependencies);
+  }
 
-    if (
-      typeof response.html_url !== 'string' ||
-      !response.html_url.includes(general ? '#issuecomment-' : '#discussion_r')
-    ) {
-      throw new Error(
-        `GitHub did not create a standalone ${general ? 'general' : 'inline'} comment for ${general ? comment.path : `${comment.path}:${comment.line}`}`
-      );
-    }
-
-    if (comment.digest) {
-      posted.set(comment.digest, response.html_url);
+  for (const comment of pending.filter(isGeneralComment)) {
+    const response = dependencies.createGeneralComment(repository, pullRequest.number, {
+      body: comment.body
+    });
+    if (!response.html_url?.includes('#issuecomment-')) {
+      throw new Error(`GitHub did not create a general comment for ${comment.path}`);
     }
     dependencies.onPosted?.(response.html_url);
   }

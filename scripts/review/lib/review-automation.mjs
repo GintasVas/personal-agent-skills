@@ -7,7 +7,6 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
-  realpathSync,
   rmSync,
   statSync,
   writeFileSync
@@ -173,53 +172,8 @@ export function pullRequestRepositoryUrl(url) {
   return `${new URL(url).origin}/${pullRequestRepository(url)}.git`;
 }
 
-export function reviewIdentity(manifest) {
-  return manifest.pullRequest
-    ? { headRefOid: manifest.pullRequest.headRefOid }
-    : { inputDigest: manifest.inputDigest ?? manifest.patchDigest };
-}
-
-export function reviewCodeRoot(manifest) {
+function reviewCodeRoot(manifest) {
   return manifest.source?.worktreePath ?? manifest.root;
-}
-
-export function requiredReviewStandards(directory, manifest) {
-  const listPath = join(directory, 'required-standards.json');
-  if (!existsSync(listPath)) return [];
-  const selection = JSON.parse(readFileSync(listPath, 'utf8'));
-  let paths = selection;
-  if (selection && typeof selection === 'object' && !Array.isArray(selection)) {
-    const indexPath = join(directory, 'review-index.json');
-    const scopes = existsSync(indexPath)
-      ? JSON.parse(readFileSync(indexPath, 'utf8')).bundles.map(({ name }) => name)
-      : ['scope'];
-    const missing = scopes.filter((scope) => !Object.hasOwn(selection, scope));
-    const extra = Object.keys(selection).filter((scope) => !scopes.includes(scope));
-    if (missing.length || extra.length) {
-      throw new Error(`Required standards need one decision per review scope. Missing: ${JSON.stringify(missing)}. Unknown: ${JSON.stringify(extra)}.`);
-    }
-    const decisions = scopes.map((scope) => selection[scope]);
-    if (!decisions.every(Array.isArray)) {
-      throw new Error('Each review scope must list repository-relative standards paths.');
-    }
-    paths = decisions.flat();
-  }
-  if (!Array.isArray(paths) || paths.some((path) =>
-    typeof path !== 'string' || isAbsolute(path) ||
-    path.split('/').some((part) => !part.trim() || part === '.' || part === '..')
-  )) {
-    throw new Error('required-standards.json must list repository-relative file paths.');
-  }
-  if (!paths.length) return [];
-
-  const root = realpathSync(reviewCodeRoot(manifest));
-  for (const path of paths) {
-    const file = join(root, path);
-    if (!existsSync(file) || !isChildPath(root, realpathSync(file)) || !statSync(file).isFile()) {
-      throw new Error(`Required standard must be a file in the code root: ${path}`);
-    }
-  }
-  return [...new Set(paths)];
 }
 
 export function pullRequestComparison(pullRequest) {
@@ -796,17 +750,18 @@ export function findingDigest(findingKey) {
   return sha256(findingKey.trim().split(/\s+/).join(' ').toLowerCase()).slice(0, 12);
 }
 
-export function validateHeadingConfidence(kind, confidence, body) {
+function validateHeadingConfidence(kind, confidence, body) {
   if (kind !== 'Unverified') {
     if (confidence < 75) throw new Error('Findings and questions need confidence of at least 75.');
     return;
   }
 
-  const prefix = 'Below the confidence threshold. Needs verification: ';
-  const paragraph = body.split('\n\n', 2)[1];
-  if (confidence < 50 || confidence >= 75 || !paragraph?.startsWith(prefix) ||
-    !paragraph.slice(prefix.length).trim() || paragraph.includes('\n')) {
-    throw new Error('Unverified candidates need confidence 50–74 and one line naming the missing evidence.');
+  if (confidence < 50 || confidence >= 75) {
+    throw new Error('Unverified candidates need confidence 50-74.');
+  }
+  const firstBodyLine = body.split('\n', 3)[2];
+  if (!/^(?:Below the confidence threshold\. )?Needs verification: \S/.test(firstBodyLine)) {
+    throw new Error('Unverified candidates must name the missing evidence.');
   }
 }
 
@@ -863,6 +818,10 @@ export function validateInlineComments(comments, lineMap) {
       throw new Error(
         `${comment.path}:${comment.line} is not present on the ${comment.side} side of the pinned diff`
       );
+    }
+
+    if (kind === 'Unverified' && location.kind === 'context') {
+      throw new Error('Unverified comments need a changed-line anchor.');
     }
 
     if (comment.anchor !== location.anchor) {
