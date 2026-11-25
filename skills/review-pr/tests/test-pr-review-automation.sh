@@ -41,20 +41,21 @@ if [[ "${1:-}" == "pr" && "${2:-}" == "diff" ]]; then
 fi
 
 if [[ "${1:-}" == "api" && "${2:-}" == "--paginate" ]]; then
-  if [[ -f "${POSTED_COMMENT}" && "${3:-}" == repos/*/pulls/*/comments ]]; then
-    jq -c '{body, html_url:"https://github.com/example-org/example/pull/42#discussion_r1"}' "${POSTED_COMMENT}"
+  if [[ "${3:-}" == repos/*/pulls/*/reviews/*/comments ]]; then
+    if [[ "${FAKE_FAIL_REVIEW_LINKS:-}" == 1 ]]; then
+      echo 'injected listing failure' >&2
+      exit 1
+    fi
+    jq -r '.comments | keys[] | "https://github.com/example-org/example/pull/42#discussion_r\(. + 1)"' "${POSTED_COMMENT}"
+  elif [[ -f "${POSTED_COMMENT}" && "${3:-}" == repos/*/pulls/*/comments ]]; then
+    jq -c '.comments | to_entries[] | {body:.value.body, html_url:"https://github.com/example-org/example/pull/42#discussion_r\(.key + 1)"}' "${POSTED_COMMENT}"
   fi
   exit 0
 fi
 
-if [[ "${1:-}" == "api" ]]; then
-  payload="$(cat)"
-  if [[ -n "${FAKE_FAIL_POST_PATH:-}" && "$(jq -r .path <<< "$payload")" == "$FAKE_FAIL_POST_PATH" ]]; then
-    echo 'injected posting failure' >&2
-    exit 1
-  fi
-  printf '%s\n' "$payload" > "${POSTED_COMMENT}"
-  printf '%s\n' '{"html_url":"https://github.com/example-org/example/pull/42#discussion_r1"}'
+if [[ "$*" == 'api --method POST repos/example-org/example/pulls/42/reviews --input -' ]]; then
+  cat > "${POSTED_COMMENT}"
+  printf '%s\n' '{"id":22,"html_url":"https://github.com/example-org/example/pull/42#pullrequestreview-22"}'
   exit 0
 fi
 
@@ -375,11 +376,7 @@ grep -Fq 'Found by: `claude-opus-5-5-high`, `grok-4.7-high`' "${POSTED_COMMENT}"
 grep -Fq '"commit_id":"0123456789abcdef"' "${POSTED_COMMENT}"
 grep -Fq '"line":3' "${POSTED_COMMENT}"
 grep -Fq '"side":"RIGHT"' "${POSTED_COMMENT}"
-grep -Fq 'repos/example-org/example/pulls/42/comments' "${GH_CALLS}"
-if grep -Fq '/reviews' "${GH_CALLS}"; then
-  echo "expected standalone inline comments without a GitHub review" >&2
-  exit 1
-fi
+grep -Fq 'POST repos/example-org/example/pulls/42/reviews ' "${GH_CALLS}"
 
 cat > "${TMP}/legacy-comments.json" <<'JSON'
 {
@@ -406,13 +403,15 @@ grep -Fq 'alreadyPosted=https://github.com/example-org/example/pull/42#discussio
 jq '.comments[0].body += " First partial finding." |
   .comments += [.comments[0] + {path:"docs/example.md",line:1,anchor:"after"}]' \
   "${TMP}/comments.json" > "${TMP}/partial-comments.json"
-FAKE_FAIL_POST_PATH=docs/example.md expect_failure 'injected posting failure' \
+FAKE_FAIL_REVIEW_LINKS=1 expect_failure 'GitHub submitted the review, but listing its comments failed' \
   node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/partial-comments.json"
-grep -Fq '"path":"src/example.ts"' "${POSTED_COMMENT}"
+grep -Fq '#pullrequestreview-22' "${TMP}/failure.out"
+posts_before_retry="$(grep -Fc 'POST repos/example-org/example/pulls/42/reviews ' "${GH_CALLS}")"
 node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/partial-comments.json" \
   > "${TMP}/partial-retry.out"
 grep -Fq 'alreadyPosted=https://github.com/example-org/example/pull/42#discussion_r1' "${TMP}/partial-retry.out"
-grep -Fq '"path":"docs/example.md"' "${POSTED_COMMENT}"
+grep -Fq 'alreadyPosted=https://github.com/example-org/example/pull/42#discussion_r2' "${TMP}/partial-retry.out"
+test "$(grep -Fc 'POST repos/example-org/example/pulls/42/reviews ' "${GH_CALLS}")" -eq "$posts_before_retry"
 FAKE_PATCH_PREFIX='diff --git a/src/new.ts b/src/new.ts\n' \
   expect_failure 'no longer matches the pinned review input' \
   node "$POST" 42 0123456789abcdef "${REVIEW_DIRECTORY}/manifest.json" "${TMP}/comments.json"
@@ -430,10 +429,16 @@ grep -Fxq 'files=312' "${TMP}/large-prepare.out"
 LARGE_DIRECTORY="$(awk -F= '/^directory=/{ print $2 }' "${TMP}/large-prepare.out")"
 sed -n 's/^changedPathsPreview=//p' "${TMP}/large-prepare.out" | jq -e 'length == 10' >/dev/null
 jq -e 'length == 312 and .[-1] == "extra/file-310.md"' "${LARGE_DIRECTORY}/changed-paths.json" >/dev/null
-jq '.comments[0] += {path:"extra/file-310.md",line:1,anchor:"after"}' "${TMP}/comments.json" > "${TMP}/large-comment.json"
+jq '.comments[0] as $finding | .comments += [range(307; 311) as $file | $finding +
+  {path:"extra/file-\($file).md",line:1,anchor:"after",
+  body:"**[Unverified] - Correctness - confidence 74:**\n\nNeeds verification: Confirm the documented default.\nThe fallback could select a different plan."}]' \
+  "${TMP}/comments.json" > "${TMP}/large-comment.json"
 FAKE_EXTRA_FILES=310 node "$POST" 42 0123456789abcdef "${LARGE_DIRECTORY}/manifest.json" "${TMP}/large-comment.json" \
   > "${TMP}/large-post.out"
-grep -Fq '"path":"extra/file-310.md"' "${POSTED_COMMENT}"
+jq -e '.event == "COMMENT" and (.comments | length == 5 and .[4].path == "extra/file-310.md")' \
+  "${POSTED_COMMENT}" >/dev/null
+grep -Fxq 'https://github.com/example-org/example/pull/42#discussion_r5' "${TMP}/large-post.out"
+test "$(grep -Fc 'POST repos/example-org/example/pulls/42/reviews ' "${GH_CALLS}")" -eq "$((posts_before_retry + 1))"
 node "$CLEANUP" "${LARGE_DIRECTORY}" >/dev/null
 if grep -Fq 'pr diff' "$GH_CALLS"; then
   echo "posting must use the pinned Git diff" >&2
@@ -471,43 +476,30 @@ test -d "$FRESH_DIRECTORY"
 test -d "$UNMARKED_STALE_DIRECTORY"
 rm -rf "$FRESH_DIRECTORY" "$UNMARKED_STALE_DIRECTORY"
 
-WORKFLOW="$SKILL_DIR/workflow.md"
 SPEC="$SKILL_DIR/../spec-audit-pr/SKILL.md"
 
 for skill in "$REVIEW" "$SIMPLIFY" "$SPEC"; do
-  cmp "$WORKFLOW" "$(dirname "$skill")/workflow.md"
-  diff -u <(grep '^## ' "$WORKFLOW") <(grep '^## ' "$skill")
-  for section in select-models prepare-input scope-large-reviews run-reviewers verify-and-report post-approved-findings cleanup; do
-    grep -Fq "(workflow.md#$section)" "$skill"
+  for script in prepare-pr-review-input build-review-bundles verify-review-bundles post-inline-pr-comments cleanup-review-input; do
+    grep -Fq "$script.mjs" "$skill"
+    test "$SKILL_DIR/scripts/$script.mjs" -ef "$(dirname "$skill")/scripts/$script.mjs"
   done
   for host in pi cursor-desktop cursor-cli codex other; do
     test -f "$(dirname "$skill")/hosts/$host.md"
   done
+  grep -Fq 'Synthesize without discovering new findings.' "$skill"
+  grep -Fq 'unverified candidates' "$skill"
 done
 
-for text in 'prepare-pr-review-input.mjs prepare' 'prepare-pr-review-input.mjs verify' \
-  'build-review-bundles.mjs' 'verify-review-bundles.mjs' 'post-inline-pr-comments.mjs' \
-  'cleanup-review-input.mjs' 'approved entries by source result file and one-based index' \
-  'Give every model all verified bundles' 'Save the full' \
-  'render-reviewer-prompt.mjs' 'review-results.mjs verify' 'review-results.mjs approve' \
-  'If verification fails, report the actual reason.' 'Post only what the user explicitly approved.' \
-  'on retry.' 'Synthesize without discovering new findings.' \
-  'Selected: <exact slug>.' 'Repeat `--model`' 'Post approved unverified candidates'; do
-  grep -Fq "$text" "$WORKFLOW"
-done
-
-for text in '<this-skill-dir>/agents/code-reviewer.md' '[shaping-lenses.md](shaping-lenses.md), including Common.' \
-  'including for spec-only PRs.' 'when location and mechanism match.' \
-  '`post all` includes design alternatives.' '`post alternatives` and `post 1,3 and alternatives`' \
-  'gh pr comment "<PR URL>" --body-file "$REVIEW_DIR/design-alternatives.md"' '/skill:review-pr'; do
+for text in '<this-skill-dir>/agents/code-reviewer.md' '](shaping-lenses.md)' \
+  'including for spec-only' 'identify the same mechanism.' \
+  '`post all` includes design alternatives.' '`post alternatives` and' \
+  'as one conversation comment' '/skill:review-pr'; do
   grep -Fq "$text" "$REVIEW"
 done
 
-for text in 'Use detached head `source` as the only code root.' 'Read every supplied hunk.' \
-  'Reconcile interactions across hunks.' 'Complete the result only after checking all hunks and resolving candidates.' \
-  'Return an input error if required input or any bundle is missing.' 'trace execution and the external state' \
-  'Verify absence in the code root.' 'mechanical CI checks' 'lint, formatting, source style, and missing lockfiles.' \
-  'Do not invoke a review skill or delegate any part.' 'Return `headRefOid`' \
-  '**[P1] - Correctness - confidence 92:**' 'anchor file or' 'Unrelated discovered issue.'; do
+for text in 'Use `source` as the only code root.' 'Record an internal disposition for every changed reviewable hunk' \
+  'After every supplied hunk has been read' 'Only return `No findings.` after every hunk disposition is resolved.' \
+  'Do not invoke a review skill or delegate the review.' 'Needs verification:' \
+  '**[P1] - Correctness - confidence 92:**' 'bundle anchor file' 'Unrelated discovered issue'; do
   grep -Fq "$text" "$REVIEWER"
 done

@@ -24,7 +24,7 @@ approval for each displayed path, then retry. Never add `--trust` automatically.
 ## Launch reviewers
 
 After you verify availability, run each job with Cursor Ask mode against the
-code root using its rendered prompt:
+code root using its complete numbered prompt:
 
 ```bash
 node <this-skill-dir>/scripts/cursor-run-reviewer.mjs \

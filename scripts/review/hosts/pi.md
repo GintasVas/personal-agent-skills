@@ -38,7 +38,7 @@ If availability verification fails, stop before building bundles.
 
 ## Launch reviewers
 
-Run each rendered prompt with the pinned CLI runner for its model.
+Run each complete numbered prompt with the pinned CLI runner for its model.
 For a Cursor slug, use Ask mode:
 
 ```bash

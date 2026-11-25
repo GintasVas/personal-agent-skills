@@ -12,7 +12,6 @@ import {
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import {
   bundleSkeleton,
@@ -31,7 +30,10 @@ import {
 import { postInlineComments, withModelAttribution } from '../scripts/post-inline-pr-comments.mjs';
 
 const FINDING_BODY = '**[P1] - Correctness - confidence 85:**\n\nDescribe the defect.';
+const UNVERIFIED_BODY =
+  '**[Unverified] - Correctness - confidence 65:**\n\nNeeds verification: Check legacy plan defaults.';
 const SELECTED_MODELS = ['claude-opus-5-5-high', 'grok-4.7-high'];
+const PR_URL = 'https://github.com/example-org/example-app/pull/123';
 
 function addedFilePatch(path, newStart, lines) {
   return [
@@ -72,8 +74,8 @@ test('line maps use RIGHT file lines instead of patch viewer lines', () => {
 
 test('review sources fetch from the pull request repository', () => {
   assert.equal(
-    pullRequestRepositoryUrl('https://github.com/example-org/example-skills/pull/72'),
-    'https://github.com/example-org/example-skills.git'
+    pullRequestRepositoryUrl('https://github.com/example-org/skill-catalog/pull/72'),
+    'https://github.com/example-org/skill-catalog.git'
   );
 });
 
@@ -98,6 +100,41 @@ test('inline validation accepts a review question heading', () => {
       ],
       lineMap
     )
+  );
+});
+
+test('unverified comments need a changed line, qualifying confidence, and missing evidence', () => {
+  const lineMap = parseReviewLineMap(addedFilePatch('docs/plan.md', 37, ['first changed line']));
+  const body = UNVERIFIED_BODY;
+
+  assert.doesNotThrow(() => validateInlineComments([finding({ body })], lineMap));
+  assert.doesNotThrow(() =>
+    validateInlineComments(
+      [finding({ body: `${body}\nA legacy default could change the selected plan.` })],
+      lineMap
+    )
+  );
+  assert.throws(
+    () => validateInlineComments([finding({ body, anchor: 'none' })], lineMap),
+    /changed-line anchor/
+  );
+  for (const score of [49, 75]) {
+    assert.throws(
+      () => validateInlineComments([finding({ body: body.replace('65', String(score)) })], lineMap),
+      /50-74/
+    );
+  }
+  assert.throws(
+    () =>
+      validateInlineComments(
+        [finding({ body: body.replace('Needs verification: ', '') })],
+        lineMap
+      ),
+    /missing evidence/
+  );
+  assert.throws(
+    () => validateInlineComments([finding({ body: FINDING_BODY.replace('85', '74') })], lineMap),
+    /at least 75/
   );
 });
 
@@ -160,170 +197,23 @@ test('large PR patches retain every reviewable hunk', () => {
   );
 });
 
-test('declared relationships and scope roots group reviewable changes exactly once', (t) => {
-  const root = mkdtempSync(join(tmpdir(), 'review-groups-test-'));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
-  writeFileSync(join(root, '.review-groups.json'), JSON.stringify({
-    groups: { booking: ['api/booking.yaml', 'service/booking/', 'generated/'] }
-  }));
+test('group roots keep nested changes together without mixing siblings or losing hunks', () => {
   const paths = [
-    'api/booking.yaml',
-    'service/booking/handler.js',
-    'generated/booking.js',
-    'changes/cart/proposal.md',
-    'changes/cart/specs/cart/spec.md',
-    'changes/payment/proposal.md',
-    'docs/design.md'
+    'openspec/changes/plan/proposal.md',
+    'openspec/changes/plan/specs/booking/spec.md',
+    'openspec/changes/other/proposal.md',
+    'openspec/specs/booking/rules/spec.md',
+    'openspec/specs/booking/spec.md',
+    'src/schedule.ts'
   ];
-  const files = parsePatch(paths.map((path) => addedFilePatch(path, 1, ['text'])).join('\n'));
-  const manifest = { root, files };
-  const bundles = bundleSkeleton(manifest, ['changes']).bundles;
+  const files = parsePatch(paths.map((path) => addedFilePatch(path, 1, ['after'])).join(''));
 
-  assert.deepEqual(bundles, [
-    { name: 'group:booking', hunkIds: ['api/booking.yaml#1', 'service/booking/handler.js#1'] },
-    { name: 'changes/cart', hunkIds: ['changes/cart/proposal.md#1', 'changes/cart/specs/cart/spec.md#1'] },
-    { name: 'changes/payment', hunkIds: ['changes/payment/proposal.md#1'] },
-    { name: 'docs', hunkIds: ['docs/design.md#1'] }
+  assert.deepEqual(bundleSkeleton({ files }, ['openspec/changes', 'openspec/specs']).bundles, [
+    { name: 'openspec/changes/plan', hunkIds: [`${paths[0]}#1`, `${paths[1]}#1`] },
+    { name: 'openspec/changes/other', hunkIds: [`${paths[2]}#1`] },
+    { name: 'openspec/specs/booking', hunkIds: [`${paths[3]}#1`, `${paths[4]}#1`] },
+    { name: 'src', hunkIds: [`${paths[5]}#1`] }
   ]);
-});
-
-test('renders canonical prompts and validates individual candidate approvals', (t) => {
-  const directory = mkdtempSync(join(tmpdir(), 'review-results-test-'));
-  t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const manifestPath = join(directory, 'manifest.json');
-  const lineMapPath = join(directory, 'line-map.json');
-  const patchPath = join(directory, 'patch.diff');
-  const descriptionPath = join(directory, 'pr-description.json');
-  const resultPath = join(directory, 'reviewer-1.result');
-  const contextPath = join(directory, 'context.md');
-  const selectionPath = join(directory, 'approved-selection.json');
-  const transcriptPath = join(directory, 'reviewer.jsonl');
-  const capturedPath = join(directory, 'captured.result');
-  const standardsPath = join(directory, 'required-standards.json');
-  const standard = 'standards.md';
-  const model = SELECTED_MODELS[0];
-  const headRefOid = 'pinned-head';
-  const patch = addedFilePatch('docs/plan.md', 37, ['first changed line', 'second changed line']);
-  writeFileSync(patchPath, patch);
-  writeFileSync(lineMapPath, JSON.stringify(parseReviewLineMap(patch)));
-  writeFileSync(descriptionPath, '{"body":"Unexpected PR body text."}');
-  mkdirSync(join(directory, 'source'));
-  writeFileSync(join(directory, 'source', standard), 'Read this standard.');
-  writeFileSync(standardsPath, JSON.stringify([standard]));
-  writeFileSync(manifestPath, JSON.stringify({
-    source: { worktreePath: join(directory, 'source') },
-    pullRequest: { headRefOid },
-    patchPath,
-    lineMapPath,
-    descriptionDigest: 'digest'
-  }));
-  writeFileSync(contextPath, 'Use the repository writing rules.');
-
-  const runScript = (name, ...args) =>
-    execFileSync(process.execPath, [fileURLToPath(new URL(`../scripts/${name}.mjs`, import.meta.url)), ...args], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-  const worker = fileURLToPath(new URL('../agents/code-reviewer.md', import.meta.url));
-  writeFileSync(join(directory, 'review-index.json'), JSON.stringify({
-    bundles: [{ name: 'docs' }, { name: 'code' }]
-  }));
-  writeFileSync(standardsPath, JSON.stringify({ docs: [standard] }));
-  assert.throws(
-    () => runScript('render-reviewer-prompt', directory, '1', model, worker),
-    /one decision per review scope.*code/
-  );
-  writeFileSync(standardsPath, JSON.stringify({ docs: [standard], code: [] }));
-  const promptPath = runScript('render-reviewer-prompt', directory, '1', model, worker, contextPath).trim();
-  const prompt = readFileSync(promptPath, 'utf8');
-  assert.ok(prompt.includes(readFileSync(worker, 'utf8')));
-  assert.ok(prompt.includes(`Reviewer model: ${model}`));
-  assert.ok(prompt.includes(readFileSync(new URL('../shaping-lenses.md', import.meta.url), 'utf8')));
-  assert.ok(prompt.includes(descriptionPath));
-  assert.ok(!prompt.includes('Unexpected PR body text.'));
-  assert.ok(prompt.includes('Use the repository writing rules.'));
-  assert.ok(prompt.includes(`["${standard}"]`));
-  assert.ok(prompt.includes('Return only one self-contained final JSON object.'));
-  assert.equal(
-    JSON.parse(runScript('review-results', 'anchor', lineMapPath, 'docs/plan.md', 'RIGHT', '37')).anchor,
-    'first changed line'
-  );
-
-  const candidate = finding({
-    body: '**[Unverified] - Date boundary - confidence 65:**\n\nBelow the confidence threshold. Needs verification: Check the expected date format.',
-    findingKey: 'docs/plan.md:date-boundary',
-    evidencePaths: ['docs/plan.md']
-  });
-  const confirmed = finding({
-    body: FINDING_BODY,
-    findingKey: candidate.findingKey,
-    evidencePaths: candidate.evidencePaths,
-    line: 38,
-    anchor: 'second changed line'
-  });
-  const result = { model, headRefOid, standards: [standard], notes: [], descriptionNotes: [], comments: [candidate, confirmed] };
-  writeFileSync(resultPath, JSON.stringify({ ...result, standards: [] }));
-  assert.throws(
-    () => runScript('review-results', 'verify', manifestPath, resultPath, model),
-    /did not report reading required standards/
-  );
-  writeFileSync(resultPath, 'One finding and one candidate. See previous messages.');
-  assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
-  const fencedResult = `\`\`\`json\n${JSON.stringify(result)}\n\`\`\``;
-  writeFileSync(resultPath, `Review complete.\n\n${fencedResult}`);
-  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
-  writeFileSync(resultPath, `${fencedResult}\n\n${fencedResult}`);
-  assert.throws(() => runScript('review-results', 'verify', manifestPath, resultPath, model));
-  writeFileSync(resultPath, JSON.stringify(result));
-  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
-  assert.throws(
-    () => runScript('review-results', 'verify', manifestPath, resultPath, SELECTED_MODELS[1]),
-    /exact model/
-  );
-  const assistant = (text) => ({ role: 'assistant', message: { content: [{ type: 'text', text }] } });
-  const turnEnded = { type: 'turn_ended', status: 'success' };
-  const capture = (path = capturedPath) => runScript('review-results', 'capture', manifestPath, transcriptPath, path, model);
-  writeFileSync(transcriptPath, JSON.stringify(assistant(fencedResult)));
-  assert.throws(() => capture(), /successful turn end/);
-  const writeTranscript = (text) => {
-    writeFileSync(transcriptPath, [assistant(text), turnEnded].map((record) => JSON.stringify(record)).join('\n'));
-  };
-  writeTranscript(`${fencedResult}\n\n${JSON.stringify(result)}`);
-  assert.throws(() => capture(), /one unambiguous JSON result/);
-  writeTranscript(`Review complete.\n\n${fencedResult}\n\nReasoning summary after the result.`);
-  assert.match(capture(), /captured=/);
-  assert.deepEqual(JSON.parse(readFileSync(capturedPath, 'utf8')), result);
-  assert.throws(() => capture(), /EEXIST/);
-  const barePath = join(directory, 'bare.result');
-  writeTranscript(`${JSON.stringify(result)}\n\nReasoning summary after the result.`);
-  assert.match(capture(barePath), /captured=/);
-  assert.deepEqual(JSON.parse(readFileSync(barePath, 'utf8')), result);
-
-  writeFileSync(selectionPath, JSON.stringify({
-    selectedModels: [model],
-    entries: [{ result: 'reviewer-1.result', number: 1, modelSlugs: [model] }]
-  }));
-  rmSync(standardsPath);
-  const approved = JSON.parse(runScript('review-results', 'approve', manifestPath, selectionPath));
-  assert.deepEqual(approved.comments, [{
-    ...candidate, modelSlugs: [model], evidencePaths: [...candidate.evidencePaths, standard]
-  }]);
-  const lineMap = parseReviewLineMap(patch);
-  for (const confidence of [49, 75]) {
-    const body = candidate.body.replace('confidence 65', `confidence ${confidence}`);
-    assert.throws(() => validateInlineComments([{ ...candidate, body }], lineMap), /confidence 50–74/);
-  }
-  assert.throws(
-    () => validateInlineComments([{ ...confirmed, body: FINDING_BODY.replace('85', '74') }], lineMap),
-    /at least 75/
-  );
-  const [unverified, verified] = withModelAttribution(approved.comments.concat({ ...confirmed, modelSlugs: [model] }), [model]);
-  assert.notEqual(unverified.digest, verified.digest);
-
-  result.comments[0] = { ...candidate, anchor: 'none' };
-  writeFileSync(resultPath, JSON.stringify(result));
-  assert.match(runScript('review-results', 'verify', manifestPath, resultPath, model), /verified=2/);
-  assert.throws(() => runScript('review-results', 'approve', manifestPath, selectionPath), /changed-line anchor/);
 });
 
 test('materialized bundles contain assigned hunks and reject later truncation', () => {
@@ -393,11 +283,8 @@ test('posting validates the whole batch before the first comment', () => {
           selectedModels: SELECTED_MODELS
         },
         pullRequestDependencies(patch, {
-          createComment() {
+          createReview() {
             postedComments += 1;
-            return {
-              html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
-            };
           }
         })
       ),
@@ -418,17 +305,15 @@ test('posting adds model attribution in selected-model order', () => {
       selectedModels: SELECTED_MODELS
     },
     pullRequestDependencies(patch, {
-      createComment(_repository, _pullRequestNumber, payload) {
+      createReview(_repository, _pullRequestNumber, payload) {
         posted.push(payload);
-        return {
-          html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
-        };
+        return { id: 1, html_url: `${PR_URL}#pullrequestreview-1` };
       }
     })
   );
 
   assert.equal(
-    posted[0].body,
+    posted[0].comments[0].body,
     `${FINDING_BODY}\n\nFound by: \`claude-opus-5-5-high\`, \`grok-4.7-high\``
   );
 });
@@ -438,11 +323,14 @@ function pullRequestDependencies(patch, overrides = {}) {
     getVerifiedInput() {
       return { patch, contextChanges: [] };
     },
+    reviewCommentUrls() {
+      return [`${PR_URL}#discussion_r1`];
+    },
     getPullRequest() {
       return {
         headRefOid: 'abc123',
         number: 123,
-        url: 'https://github.com/example-org/example-app/pull/123'
+        url: PR_URL
       };
     },
     ...overrides
@@ -451,9 +339,6 @@ function pullRequestDependencies(patch, overrides = {}) {
 
 test('posting attributes script findings and marks general comments', () => {
   const patch = addedFilePatch('docs/plan.md', 37, ['first changed line']);
-  const specPath = 'specs/changes/a/change.yaml';
-  const findingKey = `S002:${specPath}:missing schema`;
-  const body = '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare a schema.';
   const posted = [];
 
   postInlineComments(
@@ -461,10 +346,9 @@ test('posting attributes script findings and marks general comments', () => {
       comments: [
         {
           anchor: 'none',
-          body,
-          evidencePaths: [specPath],
-          findingKey,
-          path: specPath,
+          body: '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.',
+          findingKey: 'S002:openspec/changes/a/.openspec.yaml:change configuration',
+          path: 'openspec/changes/a/.openspec.yaml',
           tool: 'audit_structure.py'
         }
       ],
@@ -473,9 +357,6 @@ test('posting attributes script findings and marks general comments', () => {
       selectedModels: SELECTED_MODELS
     },
     pullRequestDependencies(patch, {
-      getVerifiedInput() {
-        return { patch, contextChanges: ['docs/unrelated.md'] };
-      },
       createGeneralComment(_repository, _pullRequestNumber, payload) {
         posted.push(payload);
         return {
@@ -490,7 +371,9 @@ test('posting attributes script findings and marks general comments', () => {
 
   assert.equal(
     posted[0].body,
-    `${body}\n\nFile: \`${specPath}\`\n\nFound by: \`audit_structure.py\`\n\n<!-- agent-finding:${findingDigest(findingKey)} -->`
+    '**[P0] - S002 Structure - confidence 100:**\n\nChange does not declare schema: spec-driven.\n\nFile: `openspec/changes/a/.openspec.yaml`\n\nFound by: `audit_structure.py`\n\n<!-- agent-finding:' +
+      findingDigest('S002:openspec/changes/a/.openspec.yaml:change configuration') +
+      ' -->'
   );
 });
 
@@ -508,7 +391,7 @@ test('posting skips findings already on the pull request', () => {
       selectedModels: SELECTED_MODELS
     },
     pullRequestDependencies(patch, {
-      createComment() {
+      createReview() {
         postedComments += 1;
         return { html_url: existing };
       },
@@ -528,6 +411,17 @@ test('posting skips findings already on the pull request', () => {
 
   assert.equal(postedComments, 0);
   assert.deepEqual(skipped, [existing]);
+});
+
+test('a posted unverified candidate does not block a later confirmed finding', () => {
+  const candidate = finding({ findingKey: 'docs/plan.md:default year' });
+  const [unverified, confirmed] = withModelAttribution(
+    [{ ...candidate, body: UNVERIFIED_BODY }, candidate],
+    SELECTED_MODELS
+  );
+
+  assert.equal(confirmed.digest, findingDigest(candidate.findingKey));
+  assert.notEqual(unverified.digest, confirmed.digest);
 });
 
 test('posting rejects a tool that also claims models', () => {
@@ -551,28 +445,22 @@ test('posting rejects a hand-authored attribution footer', () => {
 test('reports each posted URL before a later posting failure', () => {
   const patch = addedFilePatch('docs/plan.md', 37, ['first changed line']);
   const reportedUrls = [];
-  let postedComments = 0;
 
   assert.throws(
     () =>
       postInlineComments(
         {
-          comments: [finding(), finding()],
+          comments: [finding(), finding({ anchor: 'none' })],
           expectedHeadRefOid: 'abc123',
           reference: '123',
           selectedModels: SELECTED_MODELS
         },
         pullRequestDependencies(patch, {
-          createComment() {
-            postedComments += 1;
-
-            if (postedComments === 2) {
-              throw new Error('GitHub API unavailable');
-            }
-
-            return {
-              html_url: 'https://github.com/example-org/example-app/pull/123#discussion_r1'
-            };
+          createReview() {
+            return { id: 1, html_url: `${PR_URL}#pullrequestreview-1` };
+          },
+          createGeneralComment() {
+            throw new Error('GitHub API unavailable');
           },
           onPosted(url) {
             reportedUrls.push(url);
@@ -581,7 +469,7 @@ test('reports each posted URL before a later posting failure', () => {
       ),
     /GitHub API unavailable/
   );
-  assert.deepEqual(reportedUrls, ['https://github.com/example-org/example-app/pull/123#discussion_r1']);
+  assert.deepEqual(reportedUrls, [`${PR_URL}#discussion_r1`]);
 });
 
 test('stale pruning keeps refs whose input lives in another worktree', (t) => {
@@ -633,4 +521,31 @@ test('stale pruning keeps refs whose input lives in another worktree', (t) => {
     git('for-each-ref', '--format=%(refname)', 'refs/agent-review-input/'),
     'refs/agent-review-input/review-linked/head'
   );
+});
+
+test('declared relationships and scope roots group reviewable changes exactly once', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'review-groups-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, '.review-groups.json'), JSON.stringify({
+    groups: { booking: ['api/booking.yaml', 'service/booking/', 'generated/'] }
+  }));
+  const paths = [
+    'api/booking.yaml',
+    'service/booking/handler.js',
+    'generated/booking.js',
+    'changes/cart/proposal.md',
+    'changes/cart/specs/cart/spec.md',
+    'changes/payment/proposal.md',
+    'docs/design.md'
+  ];
+  const files = parsePatch(paths.map((path) => addedFilePatch(path, 1, ['text'])).join('\n'));
+  const manifest = { root, files };
+  const bundles = bundleSkeleton(manifest, ['changes']).bundles;
+
+  assert.deepEqual(bundles, [
+    { name: 'group:booking', hunkIds: ['api/booking.yaml#1', 'service/booking/handler.js#1'] },
+    { name: 'changes/cart', hunkIds: ['changes/cart/proposal.md#1', 'changes/cart/specs/cart/spec.md#1'] },
+    { name: 'changes/payment', hunkIds: ['changes/payment/proposal.md#1'] },
+    { name: 'docs', hunkIds: ['docs/design.md#1'] }
+  ]);
 });

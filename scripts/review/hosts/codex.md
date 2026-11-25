@@ -30,15 +30,16 @@ pair in order. This replaces the skill's model-only confirmation on Codex.
 ## Launch reviewers
 
 Add `reasoningEffort` to each internal reviewer-job row and include
-`Reviewer reasoning effort: <exact effort>` in its prompt context file.
-Check both settings against the selection before accepting
+`Reviewer reasoning effort: <exact effort>` alongside the model in its
+complete prompt. Check both settings against the selection before accepting
 results. Keep the exact model slug in `selectedModels` and `modelSlugs`;
 report the selected efforts in the review summary.
 
 Use the native model-pinned subagent tool, passing the selected values as
 `model` and `reasoning_effort` with `fork_turns: "none"`. Full-history
-forks inherit settings and cannot accept these overrides. Give the child the
-absolute prompt path and tell it to read and follow the file.
+forks inherit settings and cannot accept these overrides. Supply the complete
+reviewer contract, matching lenses where required, instructions, absolute
+input paths, and code root because the child does not inherit chat history.
 Launch one reviewer per selected pair. If the tool cannot pin both settings,
 stop and explain the limitation. A prompt requesting deeper thought does not
 set reasoning effort.

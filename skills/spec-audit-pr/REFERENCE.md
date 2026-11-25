@@ -5,17 +5,23 @@ behavioral review, coverage-pass definitions, applicability, and conformance roo
 
 ## Evidence gate
 
-Require one applicable rule with a definite trigger. Quote the requirement or code
-that creates an observable contradiction or missing outcome in the delivered scope.
-Record every authoritative path searched for counter-evidence.
+A semantic candidate is a finding only when all applicable statements are true:
 
-Check inherited rules even when a link is broken. Verify sibling ownership and
-resolve conflicts between authorities. A contradiction within the target or
-between the target and its applicable authority can itself be a finding.
-Try to disprove each candidate in a second pass. Ask a question only for unresolved ambiguity that
-affects behavior. Exclude explicit non-goals from findings, questions, and
-accepted exceptions. Apply Q015 or T003 to a target rule that contradicts the
-declared scope.
+1. The behavior is delivered by this target and is not an explicit non-goal.
+2. It has one checklist rule ID and a deterministic applicability trigger.
+3. It quotes the requirement or code that creates the issue.
+4. It names the observable contradiction or missing outcome.
+5. It lists every authoritative path searched for counter-evidence.
+6. Any inherited rule is checked for applicability; a broken link alone does not erase clear
+   inheritance.
+7. Sibling ownership is checked and no conflict between authorities remains
+   unresolved. A contradiction within the target or between the target and
+   its applicable authority can itself be a finding.
+8. A second falsification pass tries to disprove the candidate.
+
+For a failed gate that leaves a plausible ambiguity, apply the reviewer's
+confidence rules for questions and unverified candidates. Discard candidates
+that ask the target to deliver an explicit non-goal.
 
 ## Coverage passes
 
@@ -31,6 +37,11 @@ Use repository-relative paths. The finding key is:
 ```text
 <rule_id>:<path>:<requirement_name>
 ```
+
+Its digest is the first 12 hex characters of SHA-256 over the key after trimming, collapsing
+whitespace to single spaces, and lowercasing. Structural reports show it as `SA-<rule_id>-<digest>`.
+The posting script computes the same digest from each comment's `findingKey`, embeds it as a
+hidden marker, and skips findings whose marker is already on the PR.
 
 Do not include line numbers, prose wording, severity, timestamps, branch names, or commit SHA in
 the key. Those can change without changing the underlying issue.
@@ -57,7 +68,8 @@ design, or standards text.
 
 1. Findings, structural and behavioral together: P0, P1, P2; then rule ID, path, requirement
 2. Review questions by rule ID, path, requirement
-3. Coverage notes: `NOT_VERIFIED` checks by check name, then `ACCEPTED_EXCEPTION` items and
+3. Unverified candidates by rule ID, path, requirement
+4. Coverage notes: `NOT_VERIFIED` checks by check name, then `ACCEPTED_EXCEPTION` items and
    structural results outside the patch by rule ID and path
 
 The worst issue is the first finding; say whether it is structural or behavioral. When only
